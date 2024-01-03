@@ -40,6 +40,12 @@ pub(crate) struct Accn<'a> {
     accn_store: &'a AccnStore,
 }
 
+#[derive(Debug)]
+pub(crate) struct Contact<'a> {
+    id: ContactId,
+    accn_store: &'a AccnStore,
+}
+
 macro_rules! root_accn {
     ($($name:ident),*) => {
         pub(crate) fn new() -> Self {
@@ -99,10 +105,39 @@ impl AccnStore {
         }
     }
 
+    pub(crate) fn add_contact(&mut self, name: impl ToString) -> Contact {
+        let id = Uuid::new_v4();
+        let name = name.to_string();
+
+        let contact = ContactData {
+            id,
+            name: name.clone(),
+        };
+        self.contacts.insert(id, contact);
+        let liability = self
+            .open_accn(name.clone(), Some(self.liability().id()))
+            .id();
+        let asset = self.open_accn(name.clone(), Some(self.asset().id())).id();
+        self.open_accn("payable", Some(liability));
+        self.open_accn("receivable", Some(asset));
+
+        Contact {
+            id,
+            accn_store: self,
+        }
+    }
+
     root_accn!(asset, liability, income, expense, equity);
+
+    fn accns(&self) -> impl Iterator<Item = Accn> + '_ {
+        self.accn_data.keys().map(move |&id| Accn {
+            id,
+            accn_store: self,
+        })
+    }
 }
 
-impl<'a> Accn<'a> {
+impl Accn<'_> {
     fn ancesters(&self) -> impl Iterator<Item = Accn> + '_ {
         std::iter::successors(Some(self.id), |&id| {
             self.accn_store
@@ -142,9 +177,10 @@ impl Into<AccnId> for Accn<'_> {
 
 #[cfg(test)]
 pub(crate) mod tests {
+
     use super::*;
 
-    pub(crate) fn test_accn_store() -> AccnStore {
+    pub(crate) fn example_accn_store() -> AccnStore {
         let mut store = AccnStore::new();
         let food = store.open_accn("food", Some(store.asset().into())).id();
         let drinks = store.open_accn("drinks", Some(food)).id();
@@ -153,22 +189,10 @@ pub(crate) mod tests {
         let _chips = store.open_accn("chips", Some(drinks));
         let _salary = store.open_accn("salary", Some(store.income().into()));
         let _rent = store.open_accn("rent", Some(store.expense().into()));
-        let mut contacts = HashMap::new();
-        contacts.insert(
-            Uuid::new_v4(),
-            ContactData {
-                id: Uuid::new_v4(),
-                name: "John Doe".to_string(),
-            },
-        );
-        contacts.insert(
-            Uuid::new_v4(),
-            ContactData {
-                id: Uuid::new_v4(),
-                name: "Jane Doe".to_string(),
-            },
-        );
-        store.contacts = contacts;
+
+        store.add_contact("Alice");
+        store.add_contact("Bob");
+
         store
     }
 
@@ -193,5 +217,15 @@ pub(crate) mod tests {
         let drinks = store.open_accn("drinks", Some(food)).id();
         let beer = store.open_accn("beer", Some(drinks));
         assert_eq!(beer.abs_name(), "asset/food/drinks/beer");
+    }
+
+    #[test]
+    fn test_example_accn_store() {
+        let store = example_accn_store();
+        let ret = store
+            .accns()
+            .sorted_by_key(|accn| accn.abs_name())
+            .format_with("\n", |accn, f| f(&format_args!("{}", accn.abs_name())));
+        println!("{}", ret);
     }
 }

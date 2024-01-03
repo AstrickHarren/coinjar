@@ -83,11 +83,11 @@ mod test {
     use chrono::Local;
 
     use super::*;
-    use crate::{accn::tests::test_accn_store, valuable::Currency};
+    use crate::{accn::tests::example_accn_store, valuable::Currency};
 
     #[test]
     fn test_journal() {
-        let accn_store = test_accn_store();
+        let accn_store = example_accn_store();
         let beer = accn_store.find_accn("beer").unwrap();
         let salary = accn_store.find_accn("salary").unwrap();
 
