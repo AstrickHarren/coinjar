@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use uuid::Uuid;
 
 type AccnId = Uuid;
+type ContactId = Uuid;
 
 #[derive(Debug)]
 struct AccnData {
@@ -19,10 +20,17 @@ struct RootAccns {
     equity: AccnId,
 }
 
+#[derive(Debug, Default)]
+struct ContactData {
+    id: ContactId,
+    name: String,
+}
+
 #[derive(Debug)]
 struct AccnStore {
     root_accns: RootAccns,
     accn_data: HashMap<AccnId, AccnData>,
+    contacts: HashMap<Uuid, ContactData>,
 }
 
 #[derive(Debug)]
@@ -44,7 +52,7 @@ macro_rules! root_accn {
                 let data = AccnData { id, name, parent: None };
                 accn_data.insert(id, data);
             )*
-            Self { root_accns, accn_data, }
+            Self { root_accns, accn_data, contacts: Default::default()}
         }
 
         $(
