@@ -28,21 +28,21 @@ struct ContactData {
 }
 
 #[derive(Debug)]
-struct AccnStore {
+pub(super) struct AccnStore {
     root_accns: RootAccns,
     accn_data: HashMap<AccnId, AccnData>,
     contacts: HashMap<Uuid, ContactData>,
 }
 
 #[derive(Debug)]
-struct Accn<'a> {
+pub(crate) struct Accn<'a> {
     id: AccnId,
     accn_store: &'a AccnStore,
 }
 
 macro_rules! root_accn {
     ($($name:ident),*) => {
-        fn new() -> Self {
+        pub(crate) fn new() -> Self {
             let root_accns = RootAccns {
                 $($name: Uuid::new_v4(),)*
             };
@@ -82,6 +82,23 @@ impl AccnStore {
         }
     }
 
+    pub(crate) fn find_accn(&self, name: &str) -> Option<Accn> {
+        self.accn_data
+            .values()
+            .find(|data| data.name == name)
+            .map(|data| Accn {
+                id: data.id,
+                accn_store: self,
+            })
+    }
+
+    pub(crate) fn accn(&self, id: AccnId) -> Accn {
+        Accn {
+            id,
+            accn_store: self,
+        }
+    }
+
     root_accn!(asset, liability, income, expense, equity);
 }
 
@@ -103,13 +120,17 @@ impl<'a> Accn<'a> {
         &self.accn_store.accn_data[&self.id].name
     }
 
-    fn abs_name(&self) -> String {
+    pub(crate) fn abs_name(&self) -> String {
         self.ancesters()
             .map(|accn| accn.name().to_string())
             .collect_vec()
             .into_iter()
             .rev()
             .join("/")
+    }
+
+    pub(super) fn id(&self) -> AccnId {
+        self.id
     }
 }
 
@@ -120,8 +141,36 @@ impl Into<AccnId> for Accn<'_> {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
+
+    pub(crate) fn test_accn_store() -> AccnStore {
+        let mut store = AccnStore::new();
+        let food = store.open_accn("food", Some(store.asset().into())).id();
+        let drinks = store.open_accn("drinks", Some(food)).id();
+        let _beer = store.open_accn("beer", Some(drinks));
+        let _wine = store.open_accn("wine", Some(drinks));
+        let _chips = store.open_accn("chips", Some(drinks));
+        let _salary = store.open_accn("salary", Some(store.income().into()));
+        let _rent = store.open_accn("rent", Some(store.expense().into()));
+        let mut contacts = HashMap::new();
+        contacts.insert(
+            Uuid::new_v4(),
+            ContactData {
+                id: Uuid::new_v4(),
+                name: "John Doe".to_string(),
+            },
+        );
+        contacts.insert(
+            Uuid::new_v4(),
+            ContactData {
+                id: Uuid::new_v4(),
+                name: "Jane Doe".to_string(),
+            },
+        );
+        store.contacts = contacts;
+        store
+    }
 
     #[test]
     fn test_new_accn() {
@@ -140,8 +189,8 @@ mod tests {
     #[test]
     fn test_abs_name() {
         let mut store = AccnStore::new();
-        let food = store.open_accn("food", Some(store.asset().into())).id;
-        let drinks = store.open_accn("drinks", Some(food)).id;
+        let food = store.open_accn("food", Some(store.asset().into())).id();
+        let drinks = store.open_accn("drinks", Some(food)).id();
         let beer = store.open_accn("beer", Some(drinks));
         assert_eq!(beer.abs_name(), "asset/food/drinks/beer");
     }

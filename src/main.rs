@@ -1,4 +1,5 @@
 mod accn;
+mod journal;
 mod valuable;
 
 fn main() {
