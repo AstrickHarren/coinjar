@@ -18,7 +18,7 @@ struct Posting {
 }
 
 #[derive(Debug)]
-struct Booking {
+pub(crate) struct Booking {
     date: NaiveDate,
     desc: String,
     payee: ContactId,

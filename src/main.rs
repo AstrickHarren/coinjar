@@ -2,6 +2,7 @@
 
 mod accn;
 mod journal;
+mod parser;
 mod valuable;
 
 fn main() {
