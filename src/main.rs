@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 mod accn;
 mod journal;
 mod valuable;

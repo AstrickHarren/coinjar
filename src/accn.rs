@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use uuid::Uuid;
 
 pub(super) type AccnId = Uuid;
-type ContactId = Uuid;
+pub(super) type ContactId = Uuid;
 
 #[derive(Debug)]
 struct AccnData {
@@ -143,6 +143,23 @@ impl AccnStore {
         }
     }
 
+    pub(crate) fn find_contact(&self, name: &str) -> Option<Contact> {
+        self.contacts
+            .values()
+            .find(|contact| contact.name == name)
+            .map(|contact| Contact {
+                id: contact.id,
+                accn_store: self,
+            })
+    }
+
+    pub(crate) fn contact(&self, id: ContactId) -> Contact {
+        Contact {
+            id,
+            accn_store: self,
+        }
+    }
+
     root_accn!(asset, liability, income, expense, equity);
 
     fn accns(&self) -> impl Iterator<Item = Accn> + '_ {
@@ -209,6 +226,22 @@ impl AccnMut<'_> {
             id,
             accn_store: self.accn_store,
         }
+    }
+}
+
+impl Contact<'_> {
+    pub(crate) fn name(&self) -> &str {
+        &self.accn_store.contacts[&self.id].name
+    }
+
+    pub(crate) fn id(&self) -> ContactId {
+        self.id
+    }
+}
+
+impl Into<ContactId> for &Contact<'_> {
+    fn into(self) -> ContactId {
+        self.id
     }
 }
 

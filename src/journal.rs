@@ -4,6 +4,8 @@ use chrono::NaiveDate;
 use indenter::indented;
 use itertools::Itertools;
 
+use crate::accn::ContactId;
+
 use super::{
     accn::{AccnId, AccnStore},
     valuable::Money,
@@ -19,6 +21,7 @@ struct Posting {
 struct Booking {
     date: NaiveDate,
     desc: String,
+    payee: ContactId,
     postings: Vec<Posting>,
 }
 
@@ -44,11 +47,12 @@ impl Booking {
             .join("\n")
     }
 
-    fn new(date: NaiveDate, desc: impl ToString) -> Self {
+    fn new(date: NaiveDate, desc: impl ToString, payee: impl Into<ContactId>) -> Self {
         Self {
             date,
             desc: desc.to_string(),
             postings: Vec::new(),
+            payee: payee.into(),
         }
     }
 
@@ -67,8 +71,9 @@ impl Display for Journal {
             for booking in bookings {
                 writeln!(
                     indented(f),
-                    "{}\n{}\n",
+                    "{} @{}\n{}\n",
                     booking.desc,
+                    self.accn_store.contact(booking.payee).name(),
                     booking.format_postings(&self.accn_store)
                 )?;
             }
@@ -94,15 +99,17 @@ mod test {
         let today = Local::now().date_naive();
         let yesterday = today.pred_opt().unwrap();
 
-        let breakfast = Booking::new(today, "Breakfast")
+        let alice = accn_store.find_contact("Alice").unwrap();
+
+        let breakfast = Booking::new(today, "Breakfast", &alice)
             .with_posting(beer.id(), Money::from_major(500, Currency::usd()))
             .with_posting(salary.id(), Money::from_major(-500, Currency::usd()));
 
-        let lunch = Booking::new(today, "Lunch")
+        let lunch = Booking::new(today, "Lunch", &alice)
             .with_posting(beer.id(), Money::from_major(500, Currency::usd()))
             .with_posting(salary.id(), Money::from_major(-500, Currency::usd()));
 
-        let dinner = Booking::new(yesterday, "Dinner")
+        let dinner = Booking::new(yesterday, "Dinner", &alice)
             .with_posting(beer.id(), Money::from_major(500, Currency::usd()))
             .with_posting(salary.id(), Money::from_major(-500, Currency::usd()));
 
