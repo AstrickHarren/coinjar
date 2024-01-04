@@ -212,6 +212,31 @@ impl AccnMut<'_> {
     }
 }
 
+impl ContactMut<'_> {
+    pub(crate) fn as_ref(&self) -> Contact<'_> {
+        Contact {
+            id: self.id,
+            accn_store: self.accn_store,
+        }
+    }
+
+    fn name(&self) -> &str {
+        &self.accn_store.contacts[&self.id].name
+    }
+
+    pub(crate) fn make_accns(&mut self) {
+        let name = self.name().to_string();
+        self.accn_store
+            .asset_mut()
+            .open_child_accn(&name)
+            .open_child_accn("recievable");
+        self.accn_store
+            .liability_mut()
+            .open_child_accn(name)
+            .open_child_accn("payable");
+    }
+}
+
 impl Into<AccnId> for Accn<'_> {
     fn into(self) -> AccnId {
         self.id
