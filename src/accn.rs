@@ -96,7 +96,7 @@ macro_rules! root_accn {
 }
 
 impl AccnStore {
-    fn open_accn(&mut self, name: impl ToString, parent: Option<AccnId>) -> AccnMut {
+    pub(crate) fn open_accn(&mut self, name: impl ToString, parent: Option<AccnId>) -> AccnMut {
         let id = Uuid::new_v4();
         let accn_data = AccnData {
             id,
@@ -120,8 +120,29 @@ impl AccnStore {
             })
     }
 
+    pub(crate) fn find_accn_mut(&mut self, name: &str) -> Option<AccnMut> {
+        let accn_id = self
+            .accn_data
+            .values()
+            .find(|data| data.name == name)
+            .map(|data| data.id)
+            .map(|id| AccnMut {
+                id,
+                accn_store: self,
+            });
+
+        accn_id
+    }
+
     pub(crate) fn accn(&self, id: AccnId) -> Accn {
         Accn {
+            id,
+            accn_store: self,
+        }
+    }
+
+    pub(crate) fn accn_mut(&mut self, id: AccnId) -> AccnMut {
+        AccnMut {
             id,
             accn_store: self,
         }
@@ -202,7 +223,7 @@ impl Accn<'_> {
     }
 }
 
-impl AccnMut<'_> {
+impl<'a> AccnMut<'a> {
     fn as_ref(&self) -> Accn<'_> {
         Accn {
             id: self.id,
@@ -210,11 +231,11 @@ impl AccnMut<'_> {
         }
     }
 
-    fn id(&self) -> AccnId {
+    pub(crate) fn id(&self) -> AccnId {
         self.id
     }
 
-    fn open_child_accn(&mut self, name: impl ToString) -> AccnMut {
+    pub(crate) fn open_child_accn(&mut self, name: impl ToString) -> AccnMut {
         let id = Uuid::new_v4();
         let accn_data = AccnData {
             id,
