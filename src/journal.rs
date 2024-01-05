@@ -84,6 +84,10 @@ impl Display for Journal {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let group_by_date = self.bookings.iter().into_group_map_by(|b| b.date);
 
+        if f.alternate() {
+            writeln!(f, "Accounts:\n{}\n", self.accn_store)?;
+        }
+
         for (date, bookings) in group_by_date.into_iter().sorted_by_key(|(date, _)| *date) {
             writeln!(f, "{}", date)?;
             for booking in bookings {

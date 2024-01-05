@@ -19,17 +19,18 @@ struct CoinParser {
 impl AccnStore {
     fn parse_accn(&mut self, pair: Pair<'_, Rule>) -> AccnMut<'_> {
         let mut pairs = pair.into_inner();
-        let mut accn = self
-            .find_accn_mut(pairs.next().unwrap().as_str())
-            .unwrap()
-            .id();
+        let mut accn = self.root(pairs.next().unwrap().as_str()).unwrap().id();
 
         while let Some(pair) = pairs.next() {
             let name = pair.as_str();
 
             let name = match pair.as_rule() {
                 Rule::words => name.to_string(),
-                Rule::contact => self.parse_contact(pair).name().to_string(),
+                Rule::contact => {
+                    let mut contact = self.parse_contact(pair);
+                    contact.make_accns();
+                    name.to_string()
+                }
                 _ => unreachable!(
                     "unexpected rule {:?} in accn name {:?}",
                     pair.as_rule(),
@@ -37,10 +38,7 @@ impl AccnStore {
                 ),
             };
 
-            accn = self
-                .find_accn_mut(&name)
-                .map(|accn| accn.id())
-                .unwrap_or_else(|| self.accn_mut(accn).open_child_accn(name).id());
+            accn = self.accn_mut(accn).child_entry(name).or_open().id()
         }
 
         self.accn_mut(accn)
@@ -128,6 +126,6 @@ mod test {
             bookings: Vec::new(),
         };
         let journal = parser.parse_coinfile(coin_path);
-        println!("{}", journal);
+        println!("{:#}", journal);
     }
 }

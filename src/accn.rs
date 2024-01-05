@@ -1,6 +1,6 @@
 use itertools::Itertools;
 use paste::paste;
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt::Display};
 use uuid::Uuid;
 
 pub(super) type AccnId = Uuid;
@@ -48,6 +48,13 @@ pub(crate) struct AccnMut<'a> {
 }
 
 #[derive(Debug)]
+pub(crate) struct AccnEntry<'a> {
+    accn_store: &'a mut AccnStore,
+    name: String,
+    parent: AccnId,
+}
+
+#[derive(Debug)]
 pub(crate) struct Contact<'a> {
     id: ContactId,
     accn_store: &'a AccnStore,
@@ -92,6 +99,15 @@ macro_rules! root_accn {
                 }
             }
         )*
+
+        pub(crate) fn root(&self, name: &str) -> Option<Accn> {
+            match name {
+                $(
+                    stringify!($name) => Some(self.$name()),
+                )*
+                _ => None,
+            }
+        }
     };
 }
 
@@ -212,6 +228,16 @@ impl AccnStore {
     }
 }
 
+impl Display for AccnStore {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.accns()
+            .map(|a| a.abs_name())
+            .sorted()
+            .format("\n")
+            .fmt(f)
+    }
+}
+
 impl Accn<'_> {
     fn ancesters(&self) -> impl Iterator<Item = Accn> + '_ {
         std::iter::successors(Some(self.id), |&id| {
@@ -224,6 +250,17 @@ impl Accn<'_> {
             id,
             accn_store: self.accn_store,
         })
+    }
+
+    fn parent(&self) -> Option<Accn> {
+        self.accn_store
+            .accn_data
+            .get(&self.id)
+            .and_then(|data| data.parent)
+            .map(|id| Accn {
+                id,
+                accn_store: self.accn_store,
+            })
     }
 
     fn name(&self) -> &str {
@@ -241,6 +278,12 @@ impl Accn<'_> {
 
     pub(super) fn id(&self) -> AccnId {
         self.id
+    }
+
+    fn children(&self) -> impl Iterator<Item = Accn> {
+        self.accn_store
+            .accns()
+            .filter(|accn| accn.parent().map(|p| p.id()) == Some(self.id))
     }
 }
 
@@ -264,6 +307,46 @@ impl<'a> AccnMut<'a> {
             parent: Some(self.id),
         };
         self.accn_store.accn_data.insert(id, accn_data);
+        AccnMut {
+            id,
+            accn_store: self.accn_store,
+        }
+    }
+
+    pub(crate) fn child_entry(&mut self, name: impl ToString) -> AccnEntry {
+        AccnEntry {
+            accn_store: self.accn_store,
+            name: name.to_string(),
+            parent: self.id,
+        }
+    }
+
+    pub(crate) fn child(&mut self, name: &str) -> Option<AccnMut> {
+        let child = self
+            .as_ref()
+            .children()
+            .find(|a| a.name() == name)
+            .map(|a| a.id());
+        child.map(|id| AccnMut {
+            id,
+            accn_store: self.accn_store,
+        })
+    }
+}
+
+impl AccnEntry<'_> {
+    pub(crate) fn or_open(&mut self) -> AccnMut {
+        let id = self
+            .accn_store
+            .accn_mut(self.parent)
+            .child(&self.name)
+            .map(|accn| accn.id())
+            .unwrap_or_else(|| {
+                self.accn_store
+                    .open_accn(&self.name, Some(self.parent))
+                    .id()
+            });
+
         AccnMut {
             id,
             accn_store: self.accn_store,
@@ -313,14 +396,20 @@ impl ContactMut<'_> {
 
     pub(crate) fn make_accns(&mut self) {
         let name = self.name().to_string();
+        let name = "@".to_string() + &name;
         self.accn_store
             .asset_mut()
-            .open_child_accn(&name)
-            .open_child_accn("recievable");
+            .child_entry(&name)
+            .or_open()
+            .child_entry("receivable")
+            .or_open();
+
         self.accn_store
             .liability_mut()
-            .open_child_accn(name)
-            .open_child_accn("payable");
+            .child_entry(&name)
+            .or_open()
+            .child_entry("payable")
+            .or_open();
     }
 }
 
