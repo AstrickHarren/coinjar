@@ -17,6 +17,11 @@ struct Valuable {
     moneys: Vec<Money>,
 }
 
+#[derive(Debug, Default)]
+pub(crate) struct CurrencyStore {
+    currencies: Vec<Currency>,
+}
+
 impl Display for Money {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let symbol = self.currency.symbol.unwrap_or("");
@@ -35,6 +40,30 @@ impl Currency {
             code: Arc::new("USD"),
         }
     }
+
+    pub(crate) fn eur() -> Self {
+        Self {
+            name: Some("Euro"),
+            symbol: Some("€"),
+            code: Arc::new("EUR"),
+        }
+    }
+
+    pub(crate) fn cny() -> Self {
+        Self {
+            name: Some("Chinese Yuan"),
+            symbol: Some("¥"),
+            code: Arc::new("CNY"),
+        }
+    }
+
+    pub(crate) fn jpy() -> Self {
+        Self {
+            name: Some("Japanese Yen"),
+            symbol: Some("¥"),
+            code: Arc::new("JPY"),
+        }
+    }
 }
 
 impl Money {
@@ -50,5 +79,20 @@ impl Money {
             amount: amount as f32,
             currency,
         }
+    }
+}
+
+#[cfg(test)]
+pub(crate) mod test {
+    use super::*;
+
+    pub(crate) fn example_currency_store() -> CurrencyStore {
+        let currencies = vec![
+            Currency::usd(),
+            Currency::eur(),
+            Currency::cny(),
+            Currency::jpy(),
+        ];
+        CurrencyStore { currencies }
     }
 }

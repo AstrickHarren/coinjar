@@ -4,7 +4,7 @@ use chrono::NaiveDate;
 use indenter::indented;
 use itertools::Itertools;
 
-use crate::accn::ContactId;
+use crate::{accn::ContactId, valuable::CurrencyStore};
 
 use super::{
     accn::{AccnId, AccnStore},
@@ -28,6 +28,7 @@ pub(crate) struct Booking {
 #[derive(Debug)]
 struct Journal {
     accn_store: AccnStore,
+    currency_store: CurrencyStore,
     bookings: Vec<Booking>,
 }
 
@@ -88,7 +89,10 @@ mod test {
     use chrono::Local;
 
     use super::*;
-    use crate::{accn::tests::example_accn_store, valuable::Currency};
+    use crate::{
+        accn::tests::example_accn_store,
+        valuable::{test::example_currency_store, Currency},
+    };
 
     #[test]
     fn test_journal() {
@@ -116,6 +120,7 @@ mod test {
         let journal = Journal {
             accn_store,
             bookings: vec![lunch, dinner, breakfast],
+            currency_store: example_currency_store(),
         };
 
         println!("{}", journal)
