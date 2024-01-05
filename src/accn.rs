@@ -174,8 +174,29 @@ impl AccnStore {
             })
     }
 
+    pub(crate) fn find_contact_mut(&mut self, name: &str) -> Option<ContactMut> {
+        let contact_id = self
+            .contacts
+            .values()
+            .find(|contact| contact.name == name)
+            .map(|contact| contact.id)
+            .map(|id| ContactMut {
+                id,
+                accn_store: self,
+            });
+
+        contact_id
+    }
+
     pub(crate) fn contact(&self, id: ContactId) -> Contact {
         Contact {
+            id,
+            accn_store: self,
+        }
+    }
+
+    pub(crate) fn contact_mut(&mut self, id: ContactId) -> ContactMut {
+        ContactMut {
             id,
             accn_store: self,
         }
@@ -274,8 +295,12 @@ impl ContactMut<'_> {
         }
     }
 
-    fn name(&self) -> &str {
+    pub(crate) fn name(&self) -> &str {
         &self.accn_store.contacts[&self.id].name
+    }
+
+    pub(crate) fn id(&self) -> ContactId {
+        self.id
     }
 
     pub(crate) fn make_accns(&mut self) {
