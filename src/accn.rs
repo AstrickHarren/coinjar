@@ -281,11 +281,19 @@ impl Contact<'_> {
     }
 }
 
-impl Into<ContactId> for &Contact<'_> {
-    fn into(self) -> ContactId {
-        self.id
-    }
+macro_rules! impl_into {
+    ($name:ident : $type:ty; $($target:ty),*) => {
+        $(
+        impl Into<$type> for $target {
+            fn into(self) -> $type {
+                self.$name
+            }
+        }
+        )*
+    };
 }
+
+impl_into!(id: ContactId; Contact<'_>, ContactMut<'_>, &Contact<'_>, &ContactMut<'_>);
 
 impl ContactMut<'_> {
     pub(crate) fn as_ref(&self) -> Contact<'_> {

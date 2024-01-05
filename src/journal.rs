@@ -12,7 +12,7 @@ use super::{
 };
 
 #[derive(Debug)]
-struct Posting {
+pub(super) struct Posting {
     accn: AccnId,
     money: Money,
 }
@@ -26,7 +26,7 @@ pub(crate) struct Booking {
 }
 
 #[derive(Debug)]
-struct Journal {
+pub(crate) struct Journal {
     accn_store: AccnStore,
     currency_store: CurrencyStore,
     bookings: Vec<Booking>,
@@ -48,7 +48,7 @@ impl Booking {
             .join("\n")
     }
 
-    fn new(date: NaiveDate, desc: impl ToString, payee: impl Into<ContactId>) -> Self {
+    pub(crate) fn new(date: NaiveDate, desc: impl ToString, payee: impl Into<ContactId>) -> Self {
         Self {
             date,
             desc: desc.to_string(),
@@ -57,9 +57,26 @@ impl Booking {
         }
     }
 
-    fn with_posting(mut self, accn: AccnId, money: Money) -> Self {
-        self.postings.push(Posting { accn, money });
+    pub(crate) fn with_posting(mut self, accn: impl Into<AccnId>, money: Money) -> Self {
+        self.postings.push(Posting {
+            accn: accn.into(),
+            money,
+        });
         self
+    }
+}
+
+impl Journal {
+    pub(crate) fn new(
+        accn_store: AccnStore,
+        currency_store: CurrencyStore,
+        bookings: Vec<Booking>,
+    ) -> Self {
+        Self {
+            accn_store,
+            currency_store,
+            bookings,
+        }
     }
 }
 

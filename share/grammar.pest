@@ -2,7 +2,7 @@ year  = { ASCII_DIGIT{4} }
 month = { ASCII_DIGIT{2} }
 day   = { ASCII_DIGIT{2} }
 
-word  = { (ASCII_ALPHA | "'" | "." | "-")+ }
+word  =  { (ASCII_ALPHA | "'" | "." | "-")+ }
 words = @{ word ~ (" " ~ word)* }
 
 date = @{ year ~ "-" ~ month ~ "-" ~ day }
@@ -23,6 +23,6 @@ contact      = @{ "@" ~ words }
 WHITESPACE = _{ " " }
 
 booking = { booking_desc ~ contact ~ ("\n" ~ posting)* }
-chapter = { PUSH(date) ~ "\n" ~ booking ~ ("\n"* ~ booking)* }
+chapter = { date ~ "\n" ~ booking ~ ("\n"* ~ booking)* }
 
-grammar = { SOI ~ chapter ~ ("\n"* ~ chapter)* ~ "\n"* ~ EOI }
+grammar = _{ SOI ~ chapter ~ ("\n"* ~ chapter)* ~ "\n"* ~ EOI }
