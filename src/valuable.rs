@@ -31,8 +31,8 @@ impl Display for Money {
             .map(|s| s.as_str())
             .unwrap_or("");
         match self.amount < 0.0 {
-            true => write!(f, "-{}{}", symbol, -self.amount),
-            false => write!(f, " {}{}", symbol, self.amount),
+            true => write!(f, "-{}{:.2}", symbol, -self.amount),
+            false => write!(f, "{}{:.2}", symbol, self.amount),
         }
     }
 }
@@ -130,7 +130,7 @@ impl CurrencyStore {
     }
 }
 
-#[cfg(test)]
+// TODO: cfg test
 pub(crate) mod test {
     use super::*;
 

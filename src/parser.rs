@@ -1,3 +1,5 @@
+use std::io::Write;
+
 use chrono::NaiveDate;
 use pest::{iterators::Pair, Parser};
 use pest_derive::Parser;
@@ -5,7 +7,7 @@ use pest_derive::Parser;
 use crate::{
     accn::{AccnMut, AccnStore, ContactMut},
     journal::{Booking, Journal},
-    valuable::{CurrencyStore, Money},
+    valuable::{test::example_currency_store, CurrencyStore, Money},
 };
 
 #[derive(Debug, Parser)]
@@ -110,6 +112,23 @@ impl CoinParser {
     }
 }
 
+impl Journal {
+    pub(crate) fn from_file(file_path: &str) -> Self {
+        let parser = CoinParser {
+            accn_store: AccnStore::new(),
+            currency_store: example_currency_store(),
+            bookings: Vec::new(),
+        };
+        parser.parse_coinfile(file_path)
+    }
+
+    pub(crate) fn to_file(&self, file_path: &str) {
+        let string = self.to_string();
+        let mut file = std::fs::File::create(file_path).unwrap();
+        file.write_all(string.as_bytes()).unwrap();
+    }
+}
+
 #[cfg(test)]
 mod test {
 
@@ -127,5 +146,17 @@ mod test {
         };
         let journal = parser.parse_coinfile(coin_path);
         println!("{:#}", journal);
+    }
+
+    #[test]
+    fn reparse_example() {
+        let ref_journal = "journal.coin";
+        let reparse_journal = "./target/journal.coin";
+
+        let ref_journal = Journal::from_file(ref_journal);
+        ref_journal.to_file(reparse_journal);
+
+        let journal = Journal::from_file(reparse_journal);
+        assert_eq!(ref_journal.to_string(), journal.to_string());
     }
 }
