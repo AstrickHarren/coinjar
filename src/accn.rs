@@ -83,7 +83,7 @@ macro_rules! root_accn {
         }
 
         $(
-            fn $name(&self) -> Accn {
+            pub(crate) fn $name(&self) -> Accn {
                 Accn{
                     id: self.root_accns.$name,
                     accn_store: self,
@@ -239,7 +239,7 @@ impl Display for AccnStore {
 }
 
 impl Accn<'_> {
-    fn ancesters(&self) -> impl Iterator<Item = Accn> + '_ {
+    pub(crate) fn ancesters(&self) -> impl Iterator<Item = Accn> + '_ {
         std::iter::successors(Some(self.id), |&id| {
             self.accn_store
                 .accn_data
@@ -263,7 +263,7 @@ impl Accn<'_> {
             })
     }
 
-    fn name(&self) -> &str {
+    pub(crate) fn name(&self) -> &str {
         &self.accn_store.accn_data[&self.id].name
     }
 

@@ -1,3 +1,5 @@
+mod query;
+
 use std::fmt::{Display, Write};
 
 use chrono::NaiveDate;
@@ -78,6 +80,10 @@ impl Journal {
             bookings,
         }
     }
+
+    pub(crate) fn accn_store(&self) -> &AccnStore {
+        &self.accn_store
+    }
 }
 
 impl Display for Journal {
@@ -106,7 +112,7 @@ impl Display for Journal {
 }
 
 #[cfg(test)]
-mod test {
+pub(crate) mod test {
     use chrono::Local;
 
     use super::*;
@@ -114,6 +120,10 @@ mod test {
         accn::tests::example_accn_store,
         valuable::{test::example_currency_store, Currency},
     };
+
+    pub(crate) fn example_journal() -> Journal {
+        Journal::from_file("journal.coin")
+    }
 
     #[test]
     fn test_journal() {

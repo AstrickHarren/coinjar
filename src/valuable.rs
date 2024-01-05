@@ -1,4 +1,10 @@
-use std::{fmt::Display, sync::Arc};
+use std::{
+    fmt::Display,
+    ops::{Add, AddAssign},
+    sync::Arc,
+};
+
+use itertools::Itertools;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct Currency {
@@ -7,13 +13,14 @@ pub(crate) struct Currency {
     code: Arc<String>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub(crate) struct Money {
     amount: f32,
     currency: Currency,
 }
 
-struct Valuable {
+#[derive(Debug, Default)]
+pub(crate) struct Valuable {
     moneys: Vec<Money>,
 }
 
@@ -118,6 +125,31 @@ impl Money {
     }
 }
 
+impl Add<Money> for Money {
+    type Output = Money;
+
+    fn add(self, rhs: Money) -> Self::Output {
+        if rhs.currency != self.currency {
+            panic!("cannot add money with different currency");
+        }
+
+        Self {
+            amount: self.amount + rhs.amount,
+            currency: self.currency,
+        }
+    }
+}
+
+impl AddAssign<Money> for Money {
+    fn add_assign(&mut self, rhs: Money) {
+        if rhs.currency != self.currency {
+            panic!("cannot add money with different currency");
+        }
+
+        self.amount += rhs.amount;
+    }
+}
+
 impl CurrencyStore {
     fn currency_by_code(&self, code: &str) -> Option<&Currency> {
         self.currencies.iter().find(|c| c.code.as_ref() == code)
@@ -127,6 +159,30 @@ impl CurrencyStore {
         self.currencies
             .iter()
             .find(|c| c.symbol.as_ref().map(|s| s.as_str()) == Some(symbol))
+    }
+}
+
+impl Valuable {
+    pub(crate) fn add_money(&mut self, money: Money) {
+        let m = self
+            .moneys
+            .iter_mut()
+            .find(|m| m.currency == money.currency);
+
+        match m {
+            Some(m) => *m += money,
+            None => self.moneys.push(money),
+        }
+    }
+}
+
+impl Display for Valuable {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.moneys
+            .iter()
+            .sorted_by_key(|m| m.currency.code.as_str())
+            .format("\n")
+            .fmt(f)
     }
 }
 

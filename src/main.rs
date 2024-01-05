@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 
 mod accn;
+mod fmt_table;
 mod journal;
 mod parser;
 mod valuable;
