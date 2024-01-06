@@ -1,3 +1,4 @@
+alias r := run
 alias c := check
 alias f := fix
 
@@ -7,3 +8,6 @@ fix:
 
 check:
     @ cargo check
+
+run Args='check -v':
+    @ cargo run -- {{Args}}
