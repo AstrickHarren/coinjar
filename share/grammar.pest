@@ -23,7 +23,13 @@ contact      = @{ "@" ~ words }
 
 WHITESPACE = _{ " " }
 
-booking = { booking_desc ~ contact ~ ("\n" ~ posting)* }
-chapter = { date ~ "\n"+ ~ booking ~ ("\n"* ~ booking)* }
+booking  =  { booking_desc ~ contact ~ ("\n" ~ posting)* }
+chapter  =  { date ~ "\n"+ ~ booking ~ ("\n"* ~ booking)* }
+chapters = _{ chapter ~ ("\n"* ~ chapter)* }
 
-grammar = _{ SOI ~ chapter ~ ("\n"* ~ chapter)* ~ "\n"* ~ EOI }
+code       = @{ ASCII_ALPHA_UPPER+ }
+symbol     = @{ ANY }
+currency   =  { "currency" ~ code ~ (!"--" ~ symbol)? ~ ("--" ~ words)? }
+currencies = _{ currency ~ ("\n" ~ currency)* }
+
+grammar = _{ SOI ~ currencies? ~ "\n"* ~ chapters? ~ "\n"* ~ EOI }

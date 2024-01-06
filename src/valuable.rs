@@ -5,7 +5,7 @@ use std::{
     sync::Arc,
 };
 
-use itertools::Itertools;
+use itertools::{put_back, Itertools};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct Currency {
@@ -57,6 +57,18 @@ impl Neg for Money {
 }
 
 impl Currency {
+    pub(crate) fn new(
+        name: Option<impl ToString>,
+        symbol: Option<impl ToString>,
+        code: impl ToString,
+    ) -> Self {
+        Self {
+            name: name.map(|n| n.to_string().into()),
+            symbol: symbol.map(|s| s.to_string().into()),
+            code: Arc::new(code.to_string().into()),
+        }
+    }
+
     pub(crate) fn usd() -> Self {
         Self {
             name: Some(Arc::new("US Dollar".to_string())),
@@ -171,6 +183,16 @@ impl CurrencyStore {
         self.currencies
             .iter()
             .find(|c| c.symbol.as_ref().map(|s| s.as_str()) == Some(symbol))
+    }
+
+    pub(crate) fn add_currency(
+        &mut self,
+        desc: Option<impl ToString>,
+        symbol: Option<impl ToString>,
+        code: impl ToString,
+    ) {
+        let currency = Currency::new(desc, symbol, code);
+        self.currencies.push(currency);
     }
 }
 

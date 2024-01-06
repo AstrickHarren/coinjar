@@ -10,7 +10,7 @@ use pest_derive::Parser;
 
 use crate::{
     accn::{AccnId, AccnMut, AccnStore, ContactId, ContactMut},
-    valuable::{test::example_currency_store, CurrencyStore, Money, Valuable},
+    valuable::{test::example_currency_store, Currency, CurrencyStore, Money, Valuable},
 };
 
 use super::{query::PostingQuerys, Booking, Journal, Posting};
@@ -126,6 +126,19 @@ impl AccnStore {
     }
 }
 
+impl CurrencyStore {
+    fn parse_currency(&mut self, pair: Pair<'_, Rule>) {
+        let mut pairs = pair.into_inner();
+        let code = pairs.next().unwrap().as_str();
+        let symbol = pairs
+            .peek()
+            .filter(|p| p.as_rule() == Rule::symbol)
+            .map(|_| pairs.next().unwrap().as_str());
+        let desc = pairs.next().map(|p| p.as_str());
+        self.add_currency(desc, symbol, code);
+    }
+}
+
 impl CoinParser {
     fn parse_coinfile(mut self, file_path: &str) -> Result<Journal, String> {
         let file = std::fs::read_to_string(file_path).unwrap();
@@ -134,6 +147,7 @@ impl CoinParser {
         for pair in pairs {
             match pair.as_rule() {
                 Rule::chapter => self.parse_chapter(pair)?,
+                Rule::currency => self.currency_store.parse_currency(pair),
                 Rule::EOI => (),
                 _ => unreachable!(),
             }
@@ -245,6 +259,13 @@ mod test {
     use crate::valuable::test::example_currency_store;
 
     use super::*;
+
+    #[test]
+    fn parse_pairs() {
+        let file = std::fs::read_to_string("./test/example.coin").unwrap();
+        let pairs = CoinParser::parse(Rule::grammar, &file).unwrap_or_else(|e| panic!("{}", e));
+        dbg!(pairs);
+    }
 
     #[test]
     fn parse_example() -> Result<(), String> {
