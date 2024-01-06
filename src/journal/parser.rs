@@ -96,8 +96,7 @@ impl AccnStore {
             let name = match pair.as_rule() {
                 Rule::words => name.to_string(),
                 Rule::contact => {
-                    let mut contact = self.parse_contact(pair);
-                    contact.make_accns();
+                    self.parse_contact(pair);
                     name.to_string()
                 }
                 _ => unreachable!(
