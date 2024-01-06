@@ -24,6 +24,6 @@ contact      = @{ "@" ~ words }
 WHITESPACE = _{ " " }
 
 booking = { booking_desc ~ contact ~ ("\n" ~ posting)* }
-chapter = { date ~ "\n" ~ booking ~ ("\n"* ~ booking)* }
+chapter = { date ~ "\n"+ ~ booking ~ ("\n"* ~ booking)* }
 
 grammar = _{ SOI ~ chapter ~ ("\n"* ~ chapter)* ~ "\n"* ~ EOI }
