@@ -29,7 +29,7 @@ chapters = _{ chapter ~ ("\n"* ~ chapter)* }
 
 code       = @{ ASCII_ALPHA_UPPER+ }
 symbol     = @{ ANY }
-currency   =  { "currency" ~ code ~ (!"--" ~ symbol)? ~ ("--" ~ words)? }
-currencies = _{ currency ~ ("\n" ~ currency)* }
+currency   =  { code ~ (!"--" ~ symbol)? ~ ("--" ~ words)? }
+currencies = _{ "currency" ~ "\n"* ~ currency ~ ("\n" ~ currency)* }
 
 grammar = _{ SOI ~ currencies? ~ "\n"* ~ chapters? ~ "\n"* ~ EOI }

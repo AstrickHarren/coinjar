@@ -1,10 +1,11 @@
 use std::{
-    fmt::Display,
+    fmt::{Display, Write},
     iter::Sum,
     ops::{Add, AddAssign, Neg},
     sync::Arc,
 };
 
+use indenter::indented;
 use itertools::Itertools;
 
 #[derive(Debug, Clone, Eq)]
@@ -114,7 +115,7 @@ impl Display for Currency {
 
         match f.alternate() {
             true => write!(f, "{} ({}, {})", name, symbol, self.code.as_str()),
-            false => write!(f, "currency {} {} -- {}", code, symbol, name),
+            false => write!(f, "{} {} -- {}", code, symbol, name),
         }
     }
 }
@@ -223,11 +224,14 @@ impl CurrencyStore {
 
 impl Display for CurrencyStore {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.currencies
+        writeln!(f, "currency")?;
+        let ret = self
+            .currencies
             .iter()
             .sorted_by_key(|c| c.code.as_str())
-            .format("\n")
-            .fmt(f)
+            .format("\n");
+
+        write!(indented(f), "{}", ret)
     }
 }
 
