@@ -1,5 +1,6 @@
 currency
     USD $ -- US dollars
+    EUR € -- Euro
 
 2024-01-05
     Lunch with Yuki @McDonald's
@@ -12,6 +13,9 @@ currency
 
 2024-01-06
     Dinner with Yuki @McDonald's
-    expense/food                                                    $30.00
+    expense/food                                                    $15.00
+    expense/food                                                    $15.00
     liability/@Yuki/payable                                        -$30.00
+    asset/cash                                                     -30 EUR
+    expense/food
 

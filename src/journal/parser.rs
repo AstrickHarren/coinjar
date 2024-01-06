@@ -7,6 +7,7 @@ use pest::{
     Parser,
 };
 use pest_derive::Parser;
+use uuid::Uuid;
 
 use crate::{
     accn::{AccnId, AccnMut, AccnStore, ContactId, ContactMut},
@@ -77,6 +78,7 @@ impl InferredBookingBuilder {
         );
 
         Booking {
+            id: Uuid::new_v4(),
             date: self.date,
             desc: self.desc,
             payee: self.payee,

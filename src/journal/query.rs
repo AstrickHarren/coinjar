@@ -11,11 +11,14 @@ use crate::{
     valuable::Valuable,
 };
 
+use super::Booking;
+
 #[derive(Clone, Debug, PartialEq)]
 struct PostingQuery<'a> {
     date: NaiveDate,
     desc: &'a str,
     posting: &'a Posting,
+    booking: &'a Booking,
 }
 
 #[derive(Clone, Debug, Tabled)]
@@ -67,6 +70,7 @@ impl Journal {
                 date: b.date,
                 desc: &b.desc,
                 posting: p,
+                booking: b,
             })
         })
     }
@@ -170,15 +174,20 @@ impl<'a, 'b> PostingQuerys<'a, 'b> {
     pub(crate) fn balances(self) -> impl Iterator<Item = BalanceQuery<'a>> {
         self.postings
             .sorted_by_key(|p| p.date)
-            .scan(Valuable::default(), |balance, p| {
-                *balance += p.posting.money.clone();
+            .group_by(|p| p.booking)
+            .into_iter()
+            .scan(Valuable::default(), |balance, (b, p)| {
+                let change: Valuable = p.map(|p| p.posting.money.clone()).sum();
+                *balance += change.clone();
                 Some(BalanceQuery {
-                    date: p.date,
-                    desc: p.desc,
-                    change: p.posting.money.clone().into(),
+                    date: b.date,
+                    desc: &b.desc,
+                    change,
                     balance: balance.clone(),
                 })
             })
+            .collect_vec() // TODO: remove this
+            .into_iter()
     }
 
     fn total(self) -> Valuable {

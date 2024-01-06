@@ -7,6 +7,7 @@ use chrono::NaiveDate;
 use colored::Colorize;
 use indenter::indented;
 use itertools::Itertools;
+use uuid::Uuid;
 
 use crate::{
     accn::ContactId,
@@ -24,8 +25,11 @@ pub(super) struct Posting {
     money: Money,
 }
 
-#[derive(Debug)]
+type BookingId = Uuid;
+
+#[derive(Debug, PartialEq)]
 pub(crate) struct Booking {
+    id: BookingId,
     date: NaiveDate,
     desc: String,
     payee: ContactId,
@@ -57,6 +61,7 @@ impl Booking {
 
     pub(crate) fn new(date: NaiveDate, desc: impl ToString, payee: impl Into<ContactId>) -> Self {
         Self {
+            id: Uuid::new_v4(),
             date,
             desc: desc.to_string(),
             postings: Vec::new(),
@@ -78,6 +83,10 @@ impl Booking {
             .map(|p| p.money.clone())
             .sum::<Valuable>()
             .is_zero()
+    }
+
+    fn id(&self) -> BookingId {
+        self.id
     }
 }
 
