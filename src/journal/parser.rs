@@ -1,4 +1,4 @@
-use std::{f32::consts::E, io::Write};
+use std::io::Write;
 
 use chrono::{Local, NaiveDate};
 use pest::{
@@ -10,10 +10,10 @@ use pest_derive::Parser;
 
 use crate::{
     accn::{AccnId, AccnMut, AccnStore, ContactId, ContactMut},
-    valuable::{test::example_currency_store, Currency, CurrencyStore, Money, Valuable},
+    valuable::{CurrencyStore, Money, Valuable},
 };
 
-use super::{query::PostingQuerys, Booking, Journal, Posting};
+use super::{Booking, Journal, Posting};
 
 #[derive(Debug, Parser)]
 #[grammar = "../share/grammar.pest"]

@@ -32,15 +32,13 @@ pub(crate) struct CurrencyStore {
 
 impl Display for Money {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let symbol = self
-            .currency
-            .symbol
-            .as_ref()
-            .map(|s| s.as_str())
-            .unwrap_or("");
-        match self.amount < 0.0 {
-            true => write!(f, "-{}{:.2}", symbol, -self.amount),
-            false => write!(f, "{}{:.2}", symbol, self.amount),
+        let symbol = self.currency.symbol.as_ref().map(|s| s.as_str());
+        let positve = self.amount.abs();
+        let sign = if self.amount < 0.0 { "-" } else { "" };
+
+        match symbol {
+            Some(symbol) => write!(f, "{}{}{:.2}", sign, symbol, positve),
+            None => write!(f, "{}{:.2} {}", sign, positve, self.currency.code.as_str()),
         }
     }
 }

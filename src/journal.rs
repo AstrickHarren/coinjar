@@ -42,7 +42,7 @@ pub(crate) struct Journal {
 impl Posting {
     fn format(&self, accn_store: &AccnStore) -> String {
         let accn = accn_store.accn(self.accn);
-        format!("{:<60}{:>5}", accn.abs_name(), self.money)
+        format!("{:<60}{:>10}", accn.abs_name(), self.money.to_string())
     }
 }
 
