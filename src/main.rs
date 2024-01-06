@@ -1,7 +1,9 @@
 #![allow(dead_code)]
 
 use clap::{Parser, Subcommand};
+use colored::Colorize;
 use journal::Journal;
+use tabled::{settings::Style, Table};
 
 use crate::{fmt_table::DisplayTable, journal::query::Query};
 
@@ -30,6 +32,11 @@ enum Command {
     Format,
     #[clap(alias = "i")]
     IncomeStatement,
+
+    Contact {
+        #[clap(required = true)]
+        name: String,
+    },
 }
 
 fn main() {
@@ -47,6 +54,7 @@ fn main() {
         }
         Command::Format => journal.to_file(&args.file_path),
         Command::IncomeStatement => income_statement(&journal),
+        Command::Contact { name } => contact_details(&journal, &name),
     }
 }
 
@@ -60,5 +68,19 @@ fn income_statement(journal: &Journal) {
         "Income:\n{}\nExpense\n{}",
         income.daily_change().into_table(),
         expense.daily_change().into_table()
+    )
+}
+
+fn contact_details(journal: &Journal, name: &str) {
+    let contact = journal.accns().find_contact(name).unwrap_or_else(|| {
+        eprintln!("No contact found with name: {}", name);
+        std::process::exit(1);
+    });
+    let query = journal.query_contact(contact);
+    println!(
+        "{} {}\n{}",
+        "Contact".purple().bold(),
+        name.blue(),
+        Table::new(query.balances()).with(Style::modern()),
     )
 }

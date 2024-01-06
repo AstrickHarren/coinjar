@@ -1,8 +1,13 @@
+mod query;
+
 use colored::Colorize;
 use itertools::Itertools;
 use paste::paste;
+use std::hash::{Hash, Hasher};
 use std::{collections::HashMap, fmt::Display};
 use uuid::Uuid;
+
+use self::query::AccnQuery;
 
 pub(super) type AccnId = Uuid;
 pub(super) type ContactId = Uuid;
@@ -265,6 +270,10 @@ impl Accn<'_> {
         })
     }
 
+    pub(crate) fn ancesters_exclusive(&self) -> impl Iterator<Item = Accn> + '_ {
+        self.ancesters().skip(1)
+    }
+
     fn parent(&self) -> Option<Accn> {
         self.accn_store
             .accn_data
@@ -303,6 +312,14 @@ impl Accn<'_> {
 impl PartialEq for Accn<'_> {
     fn eq(&self, other: &Self) -> bool {
         self.id == other.id
+    }
+}
+
+impl Eq for Accn<'_> {}
+
+impl Hash for Accn<'_> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.id.hash(state);
     }
 }
 
@@ -381,6 +398,13 @@ impl Contact<'_> {
     pub(crate) fn id(&self) -> ContactId {
         self.id
     }
+
+    pub(crate) fn accns(&self) -> impl Iterator<Item = Accn> + '_ {
+        self.accn_store
+            .query(AccnQuery::new().name(self.name()))
+            .elders()
+            .into_iter()
+    }
 }
 
 macro_rules! impl_into {
@@ -451,7 +475,8 @@ pub(crate) mod tests {
         let mut drinks = food.open_child_accn("drinks");
         drinks.open_child_accn("beer");
         drinks.open_child_accn("wine");
-        drinks.open_child_accn("chips");
+        drinks.open_child_accn("chips").open_child_accn("drinks");
+        drinks.open_child_accn("drinks");
 
         let mut income = store.income_mut();
         income.open_child_accn("salary");
@@ -488,10 +513,6 @@ pub(crate) mod tests {
     #[test]
     fn test_example_accn_store() {
         let store = example_accn_store();
-        let ret = store
-            .accns()
-            .sorted_by_key(|accn| accn.abs_name())
-            .format_with("\n", |accn, f| f(&format_args!("{}", accn.abs_name())));
-        println!("{}", ret);
+        println!("{:#}", store);
     }
 }

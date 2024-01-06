@@ -1,4 +1,8 @@
-use std::{collections::HashMap, fmt::Debug, iter::successors};
+use std::{
+    collections::{HashMap, HashSet},
+    fmt::Debug,
+    iter::successors,
+};
 
 use chrono::NaiveDate;
 
@@ -6,7 +10,7 @@ use itertools::Itertools;
 use tabled::Tabled;
 
 use crate::{
-    accn::AccnId,
+    accn::{AccnId, Contact},
     journal::{Journal, Posting},
     valuable::Valuable,
 };
@@ -38,6 +42,7 @@ pub(crate) struct PostingQuerys<'a, 'b> {
 #[derive(Clone, Debug, PartialEq, Default)]
 pub(crate) enum Query {
     Account(AccnId),
+    Accounts(Vec<AccnId>),
     Since(NaiveDate),
     Until(NaiveDate),
     And(Box<Query>, Box<Query>),
@@ -48,6 +53,10 @@ pub(crate) enum Query {
 impl Query {
     pub(crate) fn new() -> Self {
         Self::All
+    }
+
+    pub(crate) fn accns(accns: impl IntoIterator<Item = impl Into<AccnId>>) -> Self {
+        Self::Accounts(accns.into_iter().map(|a| a.into()).collect_vec())
     }
 
     pub(crate) fn accn(self, accn: impl Into<AccnId>) -> Self {
@@ -88,6 +97,17 @@ impl Journal {
                 })
                 .into(),
 
+            Query::Accounts(accns) => {
+                let accns: HashSet<_> = accns.into_iter().collect();
+                PostingQuerys::from(self.postings().filter(move |p| {
+                    self.accns()
+                        .accn(p.posting.accn)
+                        .ancesters()
+                        .map(|a| a.id())
+                        .any(|a| accns.contains(&a))
+                }))
+            }
+
             Query::Since(date) => {
                 PostingQuerys::from(self.postings().filter(move |p| p.date >= date))
                     .since_date(date)
@@ -106,6 +126,10 @@ impl Journal {
             }
             Query::All => self.postings().into(),
         }
+    }
+
+    pub(crate) fn query_contact(&self, contact: Contact) -> PostingQuerys {
+        self.query_posting(Query::accns(contact.accns()))
     }
 }
 
