@@ -23,7 +23,12 @@ contact      = @{ "@" ~ words }
 
 WHITESPACE = _{ " " }
 
-booking  =  { booking_desc ~ contact ~ ("\n" ~ posting)* }
+args           = @{ word ~ ("," ~ word)* }
+tag            =  { "#" ~ word ~ ("(" ~ args? ~ ")")? }
+tags           = _{ tag ~ tag* }
+booking_header = _{ booking_desc ~ contact ~ tags? }
+
+booking  =  { booking_header ~ ("\n" ~ posting)* }
 chapter  =  { date ~ "\n"+ ~ booking ~ ("\n"* ~ booking)* }
 chapters = _{ chapter ~ ("\n"* ~ chapter)* }
 

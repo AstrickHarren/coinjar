@@ -262,8 +262,6 @@ fn pest_custom_err(span: pest::Span<'_>, msg: impl ToString) -> Error<Rule> {
 #[cfg(test)]
 mod test {
 
-    use crate::valuable::test::example_currency_store;
-
     use super::*;
 
     #[test]
@@ -288,18 +286,18 @@ mod test {
     }
 
     #[test]
-    fn parse_example() -> Result<(), String> {
+    fn parse_example() {
         let coin_path = "./test/example.coin";
         let parser = CoinParser {
             accn_store: AccnStore::new(),
-            currency_store: example_currency_store(),
+            currency_store: CurrencyStore::new(),
             bookings: Vec::new(),
         };
-        let journal = parser.parse_coinfile(coin_path)?;
-        println!("{}", journal.accns());
-        println!("{}", journal.currency_store);
+        let journal = parser
+            .parse_coinfile(coin_path)
+            .unwrap_or_else(|e| panic!("Error parsing journal: {}", e));
+        println!("{}\n", journal.accns());
         println!("{}", journal);
-        Ok(())
     }
 
     #[test]

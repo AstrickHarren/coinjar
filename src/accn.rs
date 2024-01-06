@@ -244,8 +244,9 @@ impl Display for AccnStore {
             .sorted()
             .format("\n")
             .fmt(f)?;
+        println!("\n");
         if f.alternate() {
-            println!("\n\n{}", "Contacts: ".purple());
+            println!("{}", "Contacts: ".purple());
         }
         self.contacts
             .values()
