@@ -81,7 +81,7 @@ impl Journal {
         }
     }
 
-    pub(crate) fn accn_store(&self) -> &AccnStore {
+    pub(crate) fn accns(&self) -> &AccnStore {
         &self.accn_store
     }
 }

@@ -65,7 +65,7 @@ impl Journal {
             Query::Account(accn) => self
                 .postings()
                 .filter(move |p| {
-                    self.accn_store()
+                    self.accns()
                         .accn(p.posting.accn)
                         .ancesters()
                         .map(|a| a.id())
@@ -127,7 +127,7 @@ mod test {
     #[test]
     fn test_query() {
         let journal = example_journal();
-        let income = journal.accn_store().income();
+        let income = journal.accns().income();
         let query = journal.query_posting(Query::Account(income.id()));
 
         println!(

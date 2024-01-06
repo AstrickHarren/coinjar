@@ -26,8 +26,8 @@ fn main() {
     let week_ago = chrono::Utc::now().naive_utc().date() - chrono::Duration::weeks(1);
     let query = Query::new().since(week_ago);
 
-    let income = journal.query_posting(query.clone().accn(journal.accn_store().income()));
-    let expense = journal.query_posting(query.clone().accn(journal.accn_store().expense()));
+    let income = journal.query_posting(query.clone().accn(journal.accns().income()));
+    let expense = journal.query_posting(query.clone().accn(journal.accns().expense()));
 
     println!(
         "Income Statement: \nIncome:\n{}\nExpense\n{}",
