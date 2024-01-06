@@ -11,7 +11,7 @@ use crate::{
 pub(crate) trait BuildBook {
     fn from_booking(booking: Booking) -> Self;
     fn with_posting(&mut self, accn: Accn, money: Option<Money>) -> &mut Self;
-    fn with_tag<'a>(&mut self, tagname: &str, args: impl Iterator<Item = &'a str>) -> &mut Self {
+    fn with_tag<'a>(&mut self, tag_name: &str, args: impl Iterator<Item = &'a str>) -> &mut Self {
         self
     }
     fn into_booking(self) -> Booking;

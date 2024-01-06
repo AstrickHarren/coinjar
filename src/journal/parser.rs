@@ -161,6 +161,12 @@ impl<B: BuildBook> CoinParser<B> {
                         .transpose()?;
                     booking.with_posting(accn.as_ref(), money);
                 }
+                Rule::tag => {
+                    let mut pairs = pair.into_inner();
+                    let tag_name = pairs.next().unwrap().as_str();
+                    let args = pairs.map(|p| p.as_str());
+                    booking.with_tag(tag_name, args);
+                }
                 _ => unreachable!(),
             }
         }
