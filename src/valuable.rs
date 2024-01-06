@@ -272,8 +272,20 @@ impl Sum<Money> for Valuable {
     }
 }
 
+impl AddAssign for Valuable {
+    fn add_assign(&mut self, rhs: Self) {
+        for money in rhs.moneys {
+            self.add_money(money);
+        }
+    }
+}
+
 impl Display for Valuable {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if self.moneys.is_empty() {
+            return write!(f, "0.00");
+        }
+
         self.moneys
             .iter()
             .sorted_by_key(|m| m.currency.code.as_str())

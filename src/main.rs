@@ -51,8 +51,9 @@ fn main() {
 }
 
 fn income_statement(journal: &Journal) {
+    let today = chrono::Local::now().naive_local().date();
     let week_ago = chrono::Local::now().naive_local().date() - chrono::Duration::weeks(1);
-    let query = Query::new().since(week_ago);
+    let query = Query::new().since(week_ago).until(today);
     let income = journal.query_posting(query.clone().accn(journal.accns().income()));
     let expense = journal.query_posting(query.clone().accn(journal.accns().expense()));
     println!(

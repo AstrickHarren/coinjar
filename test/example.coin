@@ -1,2 +1,17 @@
-currency USD $ -- US dollars
+currency
+    USD $ -- US dollars
+
+2024-01-05
+    Lunch with Yuki @McDonald's
+    expense/food                                                    $30.00
+    liability/@Yuki/payable                                        -$30.00
+
+    Reimbursement @CoinJar Inc.
+    expense/food                                                   -$30.00
+    income/@CoinJar Inc./reimbursement                              $30.00
+
+2024-01-06
+    Dinner with Yuki @McDonald's
+    expense/food                                                    $30.00
+    liability/@Yuki/payable                                        -$30.00
 
