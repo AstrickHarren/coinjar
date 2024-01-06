@@ -1,3 +1,4 @@
+pub(crate) mod extension;
 pub(crate) mod parser;
 pub(crate) mod query;
 
@@ -143,14 +144,14 @@ impl Display for Journal {
 pub(crate) mod test {
     use chrono::Local;
 
-    use super::*;
+    use super::{extension::NoExtension, *};
     use crate::{
         accn::tests::example_accn_store,
         valuable::{test::example_currency_store, Currency},
     };
 
     pub(crate) fn example_journal() -> Journal {
-        Journal::from_file("./test/example.coin")
+        Journal::from_file::<NoExtension>("./test/example.coin")
             .unwrap_or_else(|e| panic!("Error parsing journal: {}", e))
     }
 

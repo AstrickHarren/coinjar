@@ -2,7 +2,7 @@
 
 use clap::{Parser, Subcommand};
 use colored::Colorize;
-use journal::Journal;
+use journal::{extension::NoExtension, Journal};
 use tabled::{settings::Style, Table};
 
 use crate::{fmt_table::DisplayTable, journal::query::Query};
@@ -41,7 +41,7 @@ enum Command {
 
 fn main() {
     let args = Args::parse();
-    let journal = Journal::from_file(&args.file_path).unwrap_or_else(|e| {
+    let journal = Journal::from_file::<NoExtension>(&args.file_path).unwrap_or_else(|e| {
         eprintln!("Error parsing journal: {}", e);
         std::process::exit(1);
     });

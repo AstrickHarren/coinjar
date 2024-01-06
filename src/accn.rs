@@ -325,7 +325,7 @@ impl Hash for Accn<'_> {
 }
 
 impl<'a> AccnMut<'a> {
-    fn as_ref(&self) -> Accn<'_> {
+    pub(crate) fn as_ref(&self) -> Accn<'_> {
         Accn {
             id: self.id,
             accn_store: self.accn_store,
