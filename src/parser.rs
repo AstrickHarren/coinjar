@@ -1,7 +1,11 @@
 use std::io::Write;
 
 use chrono::{Local, NaiveDate};
-use pest::{iterators::Pair, Parser};
+use pest::{
+    error::{Error, ErrorVariant},
+    iterators::Pair,
+    Parser,
+};
 use pest_derive::Parser;
 
 use crate::{
@@ -66,7 +70,7 @@ impl CoinParser {
 
         for pair in pairs {
             match pair.as_rule() {
-                Rule::chapter => self.parse_chapter(pair),
+                Rule::chapter => self.parse_chapter(pair)?,
                 Rule::EOI => (),
                 _ => unreachable!(),
             }
@@ -88,22 +92,25 @@ impl CoinParser {
         }
     }
 
-    fn parse_chapter(&mut self, pair: Pair<'_, Rule>) {
+    fn parse_chapter(&mut self, pair: Pair<'_, Rule>) -> Result<(), String> {
         let mut pairs = pair.into_inner();
         let date = self.parse_date(pairs.next().unwrap());
 
         for pair in pairs {
             match pair.as_rule() {
                 Rule::booking => {
-                    let booking = self.parse_booking(date, pair);
+                    let booking = self.parse_booking(date, pair)?;
                     self.bookings.push(booking);
                 }
                 _ => unreachable!(),
             }
         }
+
+        Ok(())
     }
 
-    fn parse_booking(&mut self, date: NaiveDate, pair: Pair<'_, Rule>) -> Booking {
+    fn parse_booking(&mut self, date: NaiveDate, pair: Pair<'_, Rule>) -> Result<Booking, String> {
+        let span = pair.as_span();
         let mut pairs = pair.into_inner();
         let desc = pairs.next().unwrap().as_str();
         let contact = self.accn_store.parse_contact(pairs.next().unwrap());
@@ -122,6 +129,9 @@ impl CoinParser {
             }
         }
         booking
+            .is_balanced()
+            .then_some(booking)
+            .ok_or_else(|| pest_custom_err(span, "booking not balanced").to_string())
     }
 }
 
@@ -140,6 +150,15 @@ impl Journal {
         let mut file = std::fs::File::create(file_path).unwrap();
         file.write_all(string.as_bytes()).unwrap();
     }
+}
+
+fn pest_custom_err(span: pest::Span<'_>, msg: impl ToString) -> Error<Rule> {
+    Error::new_from_span(
+        ErrorVariant::<Rule>::CustomError {
+            message: msg.to_string(),
+        },
+        span,
+    )
 }
 
 #[cfg(test)]

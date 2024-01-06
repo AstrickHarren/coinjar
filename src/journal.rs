@@ -7,7 +7,10 @@ use colored::Colorize;
 use indenter::indented;
 use itertools::Itertools;
 
-use crate::{accn::ContactId, valuable::CurrencyStore};
+use crate::{
+    accn::ContactId,
+    valuable::{CurrencyStore, Valuable},
+};
 
 use super::{
     accn::{AccnId, AccnStore},
@@ -66,6 +69,16 @@ impl Booking {
             money,
         });
         self
+    }
+
+    pub(crate) fn is_balanced(&self) -> bool {
+        self.postings
+            .iter()
+            .fold(Valuable::default(), |mut acc, p| {
+                acc.add_money(p.money.clone());
+                acc
+            })
+            .is_zero()
     }
 }
 

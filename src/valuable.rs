@@ -173,6 +173,15 @@ impl Valuable {
             Some(m) => *m += money,
             None => self.moneys.push(money),
         }
+        self.simplify()
+    }
+
+    pub(crate) fn simplify(&mut self) {
+        self.moneys.retain(|m| m.amount != 0.0);
+    }
+
+    pub(crate) fn is_zero(&self) -> bool {
+        self.moneys.is_empty()
     }
 }
 
