@@ -23,7 +23,10 @@ struct Args {
 #[derive(Subcommand, Debug)]
 enum Command {
     #[clap(alias = "c")]
-    Check,
+    Check {
+        #[clap(long, short)]
+        verbose: bool,
+    },
     #[clap(alias = "fmt")]
     Format,
     #[clap(alias = "i")]
@@ -38,7 +41,11 @@ fn main() {
     });
 
     match args.command {
-        Command::Check => (),
+        Command::Check { verbose } => {
+            if verbose {
+                println!("{:#}", journal);
+            }
+        }
         Command::Format => journal.to_file(&args.file_path),
         Command::IncomeStatement => income_statement(&journal),
     }

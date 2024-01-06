@@ -1,3 +1,4 @@
+use colored::Colorize;
 use itertools::Itertools;
 use paste::paste;
 use std::{collections::HashMap, fmt::Display};
@@ -230,8 +231,16 @@ impl AccnStore {
 
 impl Display for AccnStore {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        println!("{}", "Accounts: ".purple());
         self.accns()
             .map(|a| a.abs_name())
+            .sorted()
+            .format("\n")
+            .fmt(f)?;
+        println!("\n\n{}", "Contacts: ".purple());
+        self.contacts
+            .values()
+            .map(|c| c.name.clone())
             .sorted()
             .format("\n")
             .fmt(f)

@@ -3,6 +3,7 @@ pub(crate) mod query;
 use std::fmt::{Display, Write};
 
 use chrono::NaiveDate;
+use colored::Colorize;
 use indenter::indented;
 use itertools::Itertools;
 
@@ -91,7 +92,8 @@ impl Display for Journal {
         let group_by_date = self.bookings.iter().into_group_map_by(|b| b.date);
 
         if f.alternate() {
-            writeln!(f, "Accounts:\n{}\n", self.accn_store)?;
+            writeln!(f, "{}\n", self.accn_store)?;
+            writeln!(f, "{}", "Bookings:".purple())?;
         }
 
         for (date, bookings) in group_by_date.into_iter().sorted_by_key(|(date, _)| *date) {
