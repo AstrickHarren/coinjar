@@ -1,6 +1,6 @@
 use std::io::Write;
 
-use chrono::NaiveDate;
+use chrono::{Local, NaiveDate};
 use pest::{iterators::Pair, Parser};
 use pest_derive::Parser;
 
@@ -75,9 +75,18 @@ impl CoinParser {
         Journal::new(self.accn_store, self.currency_store, self.bookings)
     }
 
+    fn parse_date(&mut self, pair: Pair<'_, Rule>) -> NaiveDate {
+        let date = pair.as_str();
+        match date {
+            "today" => Local::now().date_naive(),
+            "yesterday" => Local::now().date_naive().pred_opt().unwrap(),
+            _ => NaiveDate::parse_from_str(date, "%Y-%m-%d").unwrap(),
+        }
+    }
+
     fn parse_chapter(&mut self, pair: Pair<'_, Rule>) {
         let mut pairs = pair.into_inner();
-        let date = NaiveDate::parse_from_str(pairs.next().unwrap().as_str(), "%Y-%m-%d").unwrap();
+        let date = self.parse_date(pairs.next().unwrap());
 
         for pair in pairs {
             match pair.as_rule() {

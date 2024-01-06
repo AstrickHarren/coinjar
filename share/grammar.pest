@@ -5,7 +5,8 @@ day   = { ASCII_DIGIT{2} }
 word  =  { (ASCII_ALPHA | "'" | "." | "-")+ }
 words = @{ word ~ (" " ~ word)* }
 
-date = @{ year ~ "-" ~ month ~ "-" ~ day }
+natural_date = @{ "today" | "yesterday" }
+date         = @{ year ~ "-" ~ month ~ "-" ~ day | natural_date }
 
 root_accn = @{ "income" | "expense" | "asset" | "liability" | "equity" }
 accn      =  { root_accn ~ ("/" ~ (words | contact))+ }

@@ -22,9 +22,11 @@ struct Args {
 
 #[derive(Subcommand, Debug)]
 enum Command {
+    #[clap(alias = "c")]
+    Check,
     #[clap(alias = "fmt")]
     Format,
-    #[clap(alias = "is")]
+    #[clap(alias = "i")]
     IncomeStatement,
 }
 
@@ -33,6 +35,7 @@ fn main() {
     let journal = Journal::from_file(&args.file_path);
 
     match args.command {
+        Command::Check => (),
         Command::Format => journal.to_file(&args.file_path),
         Command::IncomeStatement => income_statement(&journal),
     }
