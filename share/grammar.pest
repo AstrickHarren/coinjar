@@ -11,7 +11,7 @@ date         = @{ year ~ "-" ~ month ~ "-" ~ day | natural_date }
 root_accn = @{ "income" | "expense" | "asset" | "liability" | "equity" }
 accn      =  { root_accn ~ ("/" ~ (words | contact))+ }
 
-amount         = @{ ASCII_DIGIT+ ~ ("." ~ ASCII_DIGIT{2})? }
+amount         = @{ ASCII_DIGIT+ ~ ("." ~ ASCII_DIGIT{2})? | ASCII_DIGIT }
 symboled_money = @{ (!"-" ~ !ASCII_DIGIT ~ ANY) ~ amount }
 coded_money    = @{ amount ~ (" " ~ word) }
 money          = @{ "-"? ~ (coded_money | symboled_money) }
