@@ -280,6 +280,12 @@ impl AddAssign for Valuable {
     }
 }
 
+impl AddAssign<Money> for Valuable {
+    fn add_assign(&mut self, rhs: Money) {
+        self.add_money(rhs);
+    }
+}
+
 impl Display for Valuable {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if self.moneys.is_empty() {

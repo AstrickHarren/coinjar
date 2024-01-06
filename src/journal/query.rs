@@ -1,8 +1,9 @@
-use std::{collections::HashMap, f32::consts::E, fmt::Debug, iter::successors};
+use std::{collections::HashMap, fmt::Debug, iter::successors};
 
 use chrono::NaiveDate;
 
 use itertools::Itertools;
+use tabled::Tabled;
 
 use crate::{
     accn::AccnId,
@@ -15,6 +16,13 @@ struct PostingQuery<'a> {
     date: NaiveDate,
     desc: &'a str,
     posting: &'a Posting,
+}
+
+#[derive(Clone, Debug, Tabled)]
+pub(crate) struct BalanceQuery<'a> {
+    date: NaiveDate,
+    desc: &'a str,
+    balance: Valuable,
 }
 
 pub(crate) struct PostingQuerys<'a, 'b> {
@@ -158,6 +166,19 @@ impl<'a, 'b> PostingQuerys<'a, 'b> {
             .collect()
     }
 
+    pub(crate) fn balances(self) -> impl Iterator<Item = BalanceQuery<'a>> {
+        self.postings
+            .sorted_by_key(|p| p.date)
+            .scan(Valuable::default(), |balance, p| {
+                *balance += p.posting.money.clone();
+                Some(BalanceQuery {
+                    date: p.date,
+                    desc: p.desc,
+                    balance: balance.clone(),
+                })
+            })
+    }
+
     fn total(self) -> Valuable {
         self.postings.map(|p| p.posting.money.clone()).sum()
     }
@@ -181,6 +202,7 @@ impl<'a, 'b> PostingQuerys<'a, 'b> {
 mod test {
     use chrono::Local;
     use colored::Colorize;
+    use tabled::{settings::Style, Table};
 
     use super::*;
     use crate::{fmt_table::DisplayTable, journal::test::example_journal};
@@ -195,7 +217,22 @@ mod test {
             "{} {}:\n{}",
             "Query".green().bold(),
             income.name(),
-            query.daily_change().as_table()
+            query.daily_change().into_table()
+        );
+    }
+
+    #[test]
+    fn test_daily_balance() {
+        let journal = example_journal();
+        let income = journal.accns().income();
+        let week_ago = Local::now().date_naive() - chrono::Duration::weeks(1);
+        let query = journal.query_posting(Query::new().accn(income.id()).since(week_ago));
+
+        println!(
+            "{} {}:\n{}",
+            "Daily Balance".green().bold(),
+            income.name(),
+            query.daily_change().into_table()
         );
     }
 
@@ -210,7 +247,7 @@ mod test {
             "{} {}:\n{}",
             "Balance".green().bold(),
             income.name(),
-            query.daily_change().as_table()
+            Table::new(query.balances()).with(Style::modern()),
         );
     }
 }
