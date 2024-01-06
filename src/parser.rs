@@ -151,21 +151,22 @@ mod test {
 
     #[test]
     fn parse_example() -> Result<(), String> {
-        let coin_path = "journal.coin";
+        let coin_path = "./test/example.coin";
         let parser = CoinParser {
             accn_store: AccnStore::new(),
             currency_store: example_currency_store(),
             bookings: Vec::new(),
         };
         let journal = parser.parse_coinfile(coin_path)?;
-        println!("{:#}", journal);
+        println!("{}", journal.accns());
+        println!("{}", journal);
         Ok(())
     }
 
     #[test]
     fn reparse_example() -> Result<(), String> {
-        let ref_journal = "journal.coin";
-        let reparse_journal = "./target/journal.coin";
+        let ref_journal = "./test/example.coin";
+        let reparse_journal = "./target/example.coin";
 
         let ref_journal = Journal::from_file(ref_journal)?;
         ref_journal.to_file(reparse_journal);

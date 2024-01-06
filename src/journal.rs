@@ -92,7 +92,7 @@ impl Display for Journal {
         let group_by_date = self.bookings.iter().into_group_map_by(|b| b.date);
 
         if f.alternate() {
-            writeln!(f, "{}\n", self.accn_store)?;
+            writeln!(f, "{:#}\n", self.accn_store)?;
             writeln!(f, "{}", "Bookings:".purple())?;
         }
 
@@ -124,7 +124,7 @@ pub(crate) mod test {
     };
 
     pub(crate) fn example_journal() -> Journal {
-        Journal::from_file("journal.coin")
+        Journal::from_file("./test/example.coin")
             .unwrap_or_else(|e| panic!("Error parsing journal: {}", e))
     }
 

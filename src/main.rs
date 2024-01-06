@@ -57,7 +57,7 @@ fn income_statement(journal: &Journal) {
     let income = journal.query_posting(query.clone().accn(journal.accns().income()));
     let expense = journal.query_posting(query.clone().accn(journal.accns().expense()));
     println!(
-        "Income Statement: \nIncome:\n{}\nExpense\n{}",
+        "Income:\n{}\nExpense\n{}",
         income.daily_change().as_table(),
         expense.daily_change().as_table()
     )
