@@ -202,7 +202,12 @@ impl CoinParser {
                         Some(money) => {
                             booking = booking.with_posting(
                                 accn.id(),
-                                Money::from_str(money.as_str(), &self.currency_store),
+                                Money::from_str(money.as_str(), &self.currency_store).ok_or_else(
+                                    || {
+                                        pest_custom_err(money.as_span(), "Currency not found")
+                                            .to_string()
+                                    },
+                                )?,
                             );
                         }
                         None => {

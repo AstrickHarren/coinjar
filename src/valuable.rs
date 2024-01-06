@@ -134,7 +134,7 @@ impl Money {
         }
     }
 
-    pub(crate) fn from_str(mut money: &str, currency_store: &CurrencyStore) -> Self {
+    pub(crate) fn from_str(mut money: &str, currency_store: &CurrencyStore) -> Option<Self> {
         let is_negative = money.chars().next().unwrap() == '-';
         if is_negative {
             money = &money[1..];
@@ -156,13 +156,13 @@ impl Money {
             Some(last) => {
                 // 2. currency code is last (e.g. -100.00 USD)
                 let amount = first.parse::<f32>().unwrap();
-                let currency = currency_store.currency_by_code(last).unwrap();
+                let currency = currency_store.currency_by_code(&last.to_uppercase())?;
                 (amount, currency.clone())
             }
         };
 
         let amount = if is_negative { -amount } else { amount };
-        Self { amount, currency }
+        Some(Self { amount, currency })
     }
 }
 
@@ -295,13 +295,13 @@ pub(crate) mod test {
     #[test]
     fn test_parse_money() {
         let currency_store = example_currency_store();
-        let usd = Money::from_str("-$100.00", &currency_store);
-        let usd_ = Money::from_str("-100.00 USD", &currency_store);
+        let usd = Money::from_str("-$100.00", &currency_store).unwrap();
+        let usd_ = Money::from_str("-100.00 USD", &currency_store).unwrap();
         println!("{}", usd);
         assert_eq!(usd, usd_);
 
-        let eur = Money::from_str("€1000", &currency_store);
-        let eur_ = Money::from_str("1000 EUR", &currency_store);
+        let eur = Money::from_str("€1000", &currency_store).unwrap();
+        let eur_ = Money::from_str("1000 EUR", &currency_store).unwrap();
         println!("{}", eur);
         assert_eq!(eur, eur_);
     }
