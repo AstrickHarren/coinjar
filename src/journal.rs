@@ -1,3 +1,4 @@
+pub(crate) mod parser;
 pub(crate) mod query;
 
 use std::fmt::{Display, Write};

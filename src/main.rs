@@ -8,7 +8,6 @@ use crate::{fmt_table::DisplayTable, journal::query::Query};
 mod accn;
 mod fmt_table;
 mod journal;
-mod parser;
 mod valuable;
 
 #[derive(Parser, Debug)]
