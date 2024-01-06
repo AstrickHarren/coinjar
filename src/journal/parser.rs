@@ -1,4 +1,4 @@
-use std::io::Write;
+use std::{f32::consts::E, io::Write};
 
 use chrono::{Local, NaiveDate};
 use pest::{
@@ -9,10 +9,11 @@ use pest::{
 use pest_derive::Parser;
 
 use crate::{
-    accn::{AccnMut, AccnStore, ContactMut},
-    journal::{Booking, Journal},
-    valuable::{test::example_currency_store, CurrencyStore, Money},
+    accn::{AccnId, AccnMut, AccnStore, ContactId, ContactMut},
+    valuable::{test::example_currency_store, CurrencyStore, Money, Valuable},
 };
+
+use super::{query::PostingQuerys, Booking, Journal, Posting};
 
 #[derive(Debug, Parser)]
 #[grammar = "../share/grammar.pest"]
@@ -20,6 +21,68 @@ struct CoinParser {
     accn_store: AccnStore,
     currency_store: CurrencyStore,
     bookings: Vec<Booking>,
+}
+
+struct InferredBookingBuilder {
+    date: NaiveDate,
+    desc: String,
+    payee: ContactId,
+    postings: Vec<Posting>,
+    inferred_posting: Option<AccnId>,
+}
+
+impl InferredBookingBuilder {
+    fn from_booking(booking: Booking) -> Self {
+        Self {
+            date: booking.date,
+            desc: booking.desc,
+            payee: booking.payee,
+            postings: booking.postings,
+            inferred_posting: None,
+        }
+    }
+
+    fn with_posting(mut self, accn: impl Into<AccnId>, money: Money) -> Self {
+        self.postings.push(Posting {
+            accn: accn.into(),
+            money,
+        });
+        self
+    }
+
+    fn with_inferred_posting(mut self, accn: impl Into<AccnId>) -> Option<Self> {
+        match self.inferred_posting {
+            Some(_) => None,
+            None => {
+                self.inferred_posting = Some(accn.into());
+                Some(self)
+            }
+        }
+    }
+
+    fn inbalance(&self) -> Valuable {
+        self.postings.iter().map(|p| -p.money.clone()).sum()
+    }
+
+    fn into_booking(mut self) -> Booking {
+        self.postings.extend(
+            self.inferred_posting
+                .map(|accn| {
+                    self.inbalance()
+                        .into_moneys()
+                        .map(move |money| Posting { accn, money })
+                })
+                .into_iter()
+                .flatten(),
+        );
+
+        Booking {
+            date: self.date,
+            desc: self.desc,
+            payee: self.payee,
+            postings: self.postings,
+        }
+    }
 }
 
 impl AccnStore {
@@ -115,19 +178,35 @@ impl CoinParser {
         let desc = pairs.next().unwrap().as_str();
         let contact = self.accn_store.parse_contact(pairs.next().unwrap());
 
-        let mut booking = Booking::new(date, desc, contact);
+        let booking = Booking::new(date, desc, contact);
+        let mut booking = InferredBookingBuilder::from_booking(booking);
         for pair in pairs {
             match pair.as_rule() {
                 Rule::posting => {
                     let mut pairs = pair.into_inner();
                     let accn = self.accn_store.parse_accn(pairs.next().unwrap());
-                    let money =
-                        Money::from_str(pairs.next().unwrap().as_str(), &self.currency_store);
-                    booking = booking.with_posting(accn.id(), money);
+                    match pairs.next() {
+                        Some(money) => {
+                            booking = booking.with_posting(
+                                accn.id(),
+                                Money::from_str(money.as_str(), &self.currency_store),
+                            );
+                        }
+                        None => {
+                            booking =
+                                booking.with_inferred_posting(accn.id()).ok_or_else(|| {
+                                    pest_custom_err(span, "cannot have multiple inferred posting")
+                                        .to_string()
+                                })?;
+                        }
+                    }
                 }
                 _ => unreachable!(),
             }
         }
+
+        let booking = booking.into_booking();
+        dbg!(&booking);
         booking
             .is_balanced()
             .then_some(booking)

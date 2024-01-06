@@ -1,6 +1,7 @@
 use std::{
     fmt::Display,
-    ops::{Add, AddAssign},
+    iter::Sum,
+    ops::{Add, AddAssign, Neg},
     sync::Arc,
 };
 
@@ -19,7 +20,7 @@ pub(crate) struct Money {
     currency: Currency,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub(crate) struct Valuable {
     moneys: Vec<Money>,
 }
@@ -40,6 +41,17 @@ impl Display for Money {
         match self.amount < 0.0 {
             true => write!(f, "-{}{:.2}", symbol, -self.amount),
             false => write!(f, "{}{:.2}", symbol, self.amount),
+        }
+    }
+}
+
+impl Neg for Money {
+    type Output = Self;
+
+    fn neg(self) -> Self::Output {
+        Self {
+            amount: -self.amount,
+            currency: self.currency,
         }
     }
 }
@@ -182,6 +194,20 @@ impl Valuable {
 
     pub(crate) fn is_zero(&self) -> bool {
         self.moneys.is_empty()
+    }
+
+    pub(crate) fn into_moneys(self) -> impl Iterator<Item = Money> {
+        self.moneys.into_iter()
+    }
+}
+
+impl Sum<Money> for Valuable {
+    fn sum<I: Iterator<Item = Money>>(iter: I) -> Self {
+        let mut valuable = Self::default();
+        for money in iter {
+            valuable.add_money(money);
+        }
+        valuable
     }
 }
 

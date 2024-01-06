@@ -16,7 +16,7 @@ symboled_money = @{ (!"-" ~ !ASCII_DIGIT ~ ANY) ~ amount }
 coded_money    = @{ amount ~ (" " ~ word) }
 money          = @{ "-"? ~ (coded_money | symboled_money) }
 
-posting = { accn ~ money }
+posting = { accn ~ money? }
 
 booking_desc = @{ words }
 contact      = @{ "@" ~ words }
