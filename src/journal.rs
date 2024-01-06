@@ -1,4 +1,4 @@
-mod query;
+pub(crate) mod query;
 
 use std::fmt::{Display, Write};
 
@@ -13,7 +13,7 @@ use super::{
     valuable::Money,
 };
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub(super) struct Posting {
     accn: AccnId,
     money: Money,

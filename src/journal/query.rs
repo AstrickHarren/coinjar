@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt::Debug};
 
 use chrono::NaiveDate;
 
@@ -10,23 +10,43 @@ use crate::{
     valuable::Valuable,
 };
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 struct PostingQuery<'a> {
     date: NaiveDate,
     desc: &'a str,
     posting: &'a Posting,
 }
 
-#[derive(Clone, Debug)]
-struct PostingQuerys<'a, I>
-where
-    I: Iterator<Item = PostingQuery<'a>>,
-{
-    postings: I,
+pub(crate) struct PostingQuerys<'a, 'b> {
+    postings: Box<dyn Iterator<Item = PostingQuery<'a>> + 'b>,
 }
 
-enum Query {
+#[derive(Clone, Debug, PartialEq, Default)]
+pub(crate) enum Query {
     Account(AccnId),
+    Since(NaiveDate),
+    Until(NaiveDate),
+    And(Box<Query>, Box<Query>),
+    #[default]
+    All,
+}
+
+impl Query {
+    pub(crate) fn new() -> Self {
+        Self::All
+    }
+
+    pub(crate) fn accn(self, accn: impl Into<AccnId>) -> Self {
+        Self::And(Box::new(self), Box::new(Self::Account(accn.into())))
+    }
+
+    pub(crate) fn since(self, date: NaiveDate) -> Self {
+        Self::And(Box::new(self), Box::new(Self::Since(date)))
+    }
+
+    pub(crate) fn until(self, date: NaiveDate) -> Self {
+        Self::And(Box::new(self), Box::new(Self::Until(date)))
+    }
 }
 
 impl Journal {
@@ -40,10 +60,7 @@ impl Journal {
         })
     }
 
-    fn query_posting(
-        &self,
-        query: Query,
-    ) -> PostingQuerys<'_, impl Iterator<Item = PostingQuery<'_>>> {
+    pub(crate) fn query_posting(&self, query: Query) -> PostingQuerys<'_, '_> {
         match query {
             Query::Account(accn) => self
                 .postings()
@@ -55,29 +72,38 @@ impl Journal {
                         .contains(&accn)
                 })
                 .into(),
+
+            Query::Since(date) => self.postings().filter(move |p| p.date >= date).into(),
+            Query::Until(date) => self.postings().filter(move |p| p.date <= date).into(),
+            Query::And(p, q) => {
+                let p = self.query_posting(*p);
+                let q = self.query_posting(*q).postings.collect_vec();
+                let postings = p.postings.filter(move |p| q.contains(p));
+                postings.into()
+            }
+            Query::All => self.postings().into(),
         }
     }
 }
 
-impl<'a, I> From<I> for PostingQuerys<'a, I>
+impl<'a, 'b, I> From<I> for PostingQuerys<'a, 'b>
 where
-    I: Iterator<Item = PostingQuery<'a>>,
+    I: Iterator<Item = PostingQuery<'a>> + 'b,
 {
     fn from(postings: I) -> Self {
-        Self { postings }
+        Self {
+            postings: Box::new(postings),
+        }
     }
 }
 
-impl<'a, I> PostingQuerys<'a, I>
-where
-    I: Iterator<Item = PostingQuery<'a>>,
-{
-    fn daily_change(self) -> HashMap<NaiveDate, Valuable> {
+impl<'a, 'b> PostingQuerys<'a, 'b> {
+    pub(crate) fn daily_change(self) -> HashMap<NaiveDate, Valuable> {
         self.postings
             .group_by(|p| p.date)
             .into_iter()
             .map(|(date, postings)| {
-                let postings: PostingQuerys<'_, _> = postings.into();
+                let postings: PostingQuerys<'_, '_> = postings.into();
                 (date, postings.total())
             })
             .collect()
