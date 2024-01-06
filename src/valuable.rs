@@ -112,7 +112,12 @@ impl Display for Currency {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let name = self.name.as_ref().map(|n| n.as_str()).unwrap_or_default();
         let symbol = self.symbol.as_ref().map(|s| s.as_str()).unwrap_or_default();
-        write!(f, "{} ({}, {})", name, symbol, self.code.as_str())
+        let code = self.code.as_str();
+
+        match f.alternate() {
+            true => write!(f, "{} ({}, {})", name, symbol, self.code.as_str()),
+            false => write!(f, "currency {} {} -- {}", code, symbol, name),
+        }
     }
 }
 

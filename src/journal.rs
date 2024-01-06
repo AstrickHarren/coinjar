@@ -104,9 +104,13 @@ impl Display for Journal {
         let group_by_date = self.bookings.iter().into_group_map_by(|b| b.date);
 
         if f.alternate() {
-            writeln!(f, "{}\n{}\n", "Currencies".purple(), self.currency_store)?;
+            writeln!(f, "{}\n{:#}\n", "Currencies".purple(), self.currency_store)?;
             writeln!(f, "{:#}\n", self.accn_store)?;
             writeln!(f, "{}", "Bookings:".purple())?;
+        }
+
+        if !f.alternate() {
+            writeln!(f, "{}\n", self.currency_store)?;
         }
 
         for (date, bookings) in group_by_date.into_iter().sorted_by_key(|(date, _)| *date) {
