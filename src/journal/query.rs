@@ -22,6 +22,7 @@ struct PostingQuery<'a> {
 pub(crate) struct BalanceQuery<'a> {
     date: NaiveDate,
     desc: &'a str,
+    change: Valuable,
     balance: Valuable,
 }
 
@@ -174,6 +175,7 @@ impl<'a, 'b> PostingQuerys<'a, 'b> {
                 Some(BalanceQuery {
                     date: p.date,
                     desc: p.desc,
+                    change: p.posting.money.clone().into(),
                     balance: balance.clone(),
                 })
             })
@@ -239,14 +241,14 @@ mod test {
     #[test]
     fn test_balance() {
         let journal = example_journal();
-        let income = journal.accns().income();
+        let expense = journal.accns().expense();
         let week_ago = Local::now().date_naive() - chrono::Duration::weeks(1);
-        let query = journal.query_posting(Query::new().accn(income.id()).since(week_ago));
+        let query = journal.query_posting(Query::new().accn(expense.id()).since(week_ago));
 
         println!(
             "{} {}:\n{}",
             "Balance".green().bold(),
-            income.name(),
+            expense.name(),
             Table::new(query.balances()).with(Style::modern()),
         );
     }

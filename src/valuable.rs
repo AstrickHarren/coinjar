@@ -262,6 +262,14 @@ impl Valuable {
     }
 }
 
+impl From<Money> for Valuable {
+    fn from(money: Money) -> Self {
+        let mut valuable = Self::default();
+        valuable.add_money(money);
+        valuable
+    }
+}
+
 impl Sum<Money> for Valuable {
     fn sum<I: Iterator<Item = Money>>(iter: I) -> Self {
         let mut valuable = Self::default();

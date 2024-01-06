@@ -36,7 +36,7 @@ pub(super) struct AccnStore {
     contacts: HashMap<Uuid, ContactData>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct Accn<'a> {
     id: AccnId,
     accn_store: &'a AccnStore,
@@ -297,6 +297,12 @@ impl Accn<'_> {
         self.accn_store
             .accns()
             .filter(|accn| accn.parent().map(|p| p.id()) == Some(self.id))
+    }
+}
+
+impl PartialEq for Accn<'_> {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
     }
 }
 
