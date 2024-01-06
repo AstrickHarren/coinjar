@@ -206,7 +206,6 @@ impl CoinParser {
         }
 
         let booking = booking.into_booking();
-        dbg!(&booking);
         booking
             .is_balanced()
             .then_some(booking)
