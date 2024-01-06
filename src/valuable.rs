@@ -5,9 +5,9 @@ use std::{
     sync::Arc,
 };
 
-use itertools::{put_back, Itertools};
+use itertools::Itertools;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Eq)]
 pub(crate) struct Currency {
     name: Option<Arc<String>>,
     symbol: Option<Arc<String>>,
@@ -102,6 +102,20 @@ impl Currency {
     }
 }
 
+impl PartialEq for Currency {
+    fn eq(&self, other: &Self) -> bool {
+        self.code == other.code
+    }
+}
+
+impl Display for Currency {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let name = self.name.as_ref().map(|n| n.as_str()).unwrap_or_default();
+        let symbol = self.symbol.as_ref().map(|s| s.as_str()).unwrap_or_default();
+        write!(f, "{} ({}, {})", name, symbol, self.code.as_str())
+    }
+}
+
 impl Money {
     pub(crate) fn from_minor(amount: i32, currency: Currency) -> Self {
         Self {
@@ -175,6 +189,12 @@ impl AddAssign<Money> for Money {
 }
 
 impl CurrencyStore {
+    pub(crate) fn new() -> Self {
+        Self {
+            currencies: Vec::new(),
+        }
+    }
+
     fn currency_by_code(&self, code: &str) -> Option<&Currency> {
         self.currencies.iter().find(|c| c.code.as_ref() == code)
     }
@@ -192,7 +212,19 @@ impl CurrencyStore {
         code: impl ToString,
     ) {
         let currency = Currency::new(desc, symbol, code);
-        self.currencies.push(currency);
+        if !self.currencies.contains(&currency) {
+            self.currencies.push(currency);
+        }
+    }
+}
+
+impl Display for CurrencyStore {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.currencies
+            .iter()
+            .sorted_by_key(|c| c.code.as_str())
+            .format("\n")
+            .fmt(f)
     }
 }
 

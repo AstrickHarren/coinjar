@@ -231,7 +231,7 @@ impl Journal {
     pub(crate) fn from_file(file_path: &str) -> Result<Self, String> {
         let parser = CoinParser {
             accn_store: AccnStore::new(),
-            currency_store: example_currency_store(),
+            currency_store: CurrencyStore::new(),
             bookings: Vec::new(),
         };
         parser.parse_coinfile(file_path)
@@ -261,6 +261,20 @@ mod test {
     use super::*;
 
     #[test]
+    fn parse_currency() {
+        let coin = stringify!(
+            currency USD $ -- US Dollar
+        );
+        let mut currency_store = CurrencyStore::new();
+        let pairs = CoinParser::parse(Rule::currencies, coin).unwrap_or_else(|e| panic!("{}", e));
+        for pair in pairs {
+            currency_store.parse_currency(pair);
+        }
+
+        println!("{}", currency_store);
+    }
+
+    #[test]
     fn parse_pairs() {
         let file = std::fs::read_to_string("./test/example.coin").unwrap();
         let pairs = CoinParser::parse(Rule::grammar, &file).unwrap_or_else(|e| panic!("{}", e));
@@ -277,6 +291,7 @@ mod test {
         };
         let journal = parser.parse_coinfile(coin_path)?;
         println!("{}", journal.accns());
+        println!("{}", journal.currency_store);
         println!("{}", journal);
         Ok(())
     }
