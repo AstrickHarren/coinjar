@@ -1,5 +1,6 @@
 use std::{collections::HashMap, fmt::Display, iter::once};
 
+use itertools::Itertools;
 use tabled::{settings::Style, tables::IterTable};
 
 pub(crate) trait DisplayTable {
@@ -37,7 +38,9 @@ where
     fn fmt_table(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         IterTable::new(
             self.iter()
-                .map(|(k, v)| once(k.to_string()).chain(once(v.to_string()))),
+                .map(|(k, v)| (k.to_string(), v.to_string()))
+                .sorted_by(|(k1, _), (k2, _)| k1.cmp(k2))
+                .map(|(k, v)| once(k).chain(once(v))),
         )
         .with(Style::modern())
         .fmt(f)

@@ -23,7 +23,7 @@ fn main() {
     let journal = Journal::from_file(&args.journal_file);
     println!("{}", journal);
 
-    let week_ago = chrono::Utc::now().naive_utc().date() - chrono::Duration::weeks(1);
+    let week_ago = chrono::Local::now().naive_local().date() - chrono::Duration::weeks(1);
     let query = Query::new().since(week_ago);
 
     let income = journal.query_posting(query.clone().accn(journal.accns().income()));

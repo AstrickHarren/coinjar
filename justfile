@@ -1,3 +1,4 @@
+alias c := check
 alias f := fix
 alias r := run
 
@@ -7,3 +8,6 @@ fix:
 
 run:
     @ cargo run -- -j journal.coin
+
+check:
+    @ cargo check
