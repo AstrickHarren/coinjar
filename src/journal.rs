@@ -75,10 +75,8 @@ impl Booking {
     pub(crate) fn is_balanced(&self) -> bool {
         self.postings
             .iter()
-            .fold(Valuable::default(), |mut acc, p| {
-                acc.add_money(p.money.clone());
-                acc
-            })
+            .map(|p| p.money.clone())
+            .sum::<Valuable>()
             .is_zero()
     }
 }

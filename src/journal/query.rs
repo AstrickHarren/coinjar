@@ -110,10 +110,7 @@ impl<'a, 'b> PostingQuerys<'a, 'b> {
     }
 
     fn total(self) -> Valuable {
-        self.postings.fold(Valuable::default(), |mut acc, p| {
-            acc.add_money(p.posting.money.clone());
-            acc
-        })
+        self.postings.map(|p| p.posting.money.clone()).sum()
     }
 }
 
