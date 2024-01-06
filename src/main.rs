@@ -32,7 +32,10 @@ enum Command {
 
 fn main() {
     let args = Args::parse();
-    let journal = Journal::from_file(&args.file_path);
+    let journal = Journal::from_file(&args.file_path).unwrap_or_else(|e| {
+        eprintln!("Error parsing journal: {}", e);
+        std::process::exit(1);
+    });
 
     match args.command {
         Command::Check => (),

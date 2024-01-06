@@ -123,6 +123,7 @@ pub(crate) mod test {
 
     pub(crate) fn example_journal() -> Journal {
         Journal::from_file("journal.coin")
+            .unwrap_or_else(|e| panic!("Error parsing journal: {}", e))
     }
 
     #[test]

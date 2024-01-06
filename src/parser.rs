@@ -60,9 +60,9 @@ impl AccnStore {
 }
 
 impl CoinParser {
-    fn parse_coinfile(mut self, file_path: &str) -> Journal {
+    fn parse_coinfile(mut self, file_path: &str) -> Result<Journal, String> {
         let file = std::fs::read_to_string(file_path).unwrap();
-        let pairs = CoinParser::parse(Rule::grammar, &file).unwrap_or_else(|e| panic!("{}", e));
+        let pairs = CoinParser::parse(Rule::grammar, &file).map_err(|e| format!("{}", e))?;
 
         for pair in pairs {
             match pair.as_rule() {
@@ -72,7 +72,11 @@ impl CoinParser {
             }
         }
 
-        Journal::new(self.accn_store, self.currency_store, self.bookings)
+        Ok(Journal::new(
+            self.accn_store,
+            self.currency_store,
+            self.bookings,
+        ))
     }
 
     fn parse_date(&mut self, pair: Pair<'_, Rule>) -> NaiveDate {
@@ -122,7 +126,7 @@ impl CoinParser {
 }
 
 impl Journal {
-    pub(crate) fn from_file(file_path: &str) -> Self {
+    pub(crate) fn from_file(file_path: &str) -> Result<Self, String> {
         let parser = CoinParser {
             accn_store: AccnStore::new(),
             currency_store: example_currency_store(),
@@ -146,26 +150,28 @@ mod test {
     use super::*;
 
     #[test]
-    fn parse_example() {
+    fn parse_example() -> Result<(), String> {
         let coin_path = "journal.coin";
         let parser = CoinParser {
             accn_store: AccnStore::new(),
             currency_store: example_currency_store(),
             bookings: Vec::new(),
         };
-        let journal = parser.parse_coinfile(coin_path);
+        let journal = parser.parse_coinfile(coin_path)?;
         println!("{:#}", journal);
+        Ok(())
     }
 
     #[test]
-    fn reparse_example() {
+    fn reparse_example() -> Result<(), String> {
         let ref_journal = "journal.coin";
         let reparse_journal = "./target/journal.coin";
 
-        let ref_journal = Journal::from_file(ref_journal);
+        let ref_journal = Journal::from_file(ref_journal)?;
         ref_journal.to_file(reparse_journal);
 
-        let journal = Journal::from_file(reparse_journal);
+        let journal = Journal::from_file(reparse_journal)?;
         assert_eq!(ref_journal.to_string(), journal.to_string());
+        Ok(())
     }
 }
