@@ -1,3 +1,4 @@
 /target
 .vscode/
 journal.coin
+.todos.json
