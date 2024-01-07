@@ -165,13 +165,13 @@ impl<B: BuildBook> CoinParser<B> {
                     let mut pairs = pair.into_inner();
                     let tag_name = pairs.next().unwrap().as_str();
                     let args = pairs.map(|p| p.as_str());
-                    booking.with_tag(tag_name, args);
+                    booking.with_tag(&mut self.accn_store, tag_name, args);
                 }
                 _ => unreachable!(),
             }
         }
 
-        let booking = booking.into_booking();
+        let booking = booking.into_booking_with(&mut self.accn_store);
         booking
             .is_balanced()
             .then_some(booking)

@@ -280,7 +280,7 @@ macro_rules! fn_accn_ty {
     };
 }
 
-impl Accn<'_> {
+impl<'a> Accn<'a> {
     pub(crate) fn ancesters(&self) -> impl Iterator<Item = Accn> + '_ {
         std::iter::successors(Some(self.id), |&id| {
             self.accn_store
@@ -328,10 +328,14 @@ impl Accn<'_> {
         self.id
     }
 
-    fn children(&self) -> impl Iterator<Item = Accn> {
+    fn children(self) -> impl Iterator<Item = Accn<'a>> {
         self.accn_store
             .accns()
-            .filter(|accn| accn.parent().map(|p| p.id()) == Some(self.id))
+            .filter(move |accn| accn.parent().map(|p| p.id()) == Some(self.id))
+    }
+
+    fn child(self, name: &str) -> Option<Accn<'a>> {
+        self.children().find(move |a| a.name() == name)
     }
 }
 
@@ -416,7 +420,7 @@ impl<'a> AccnEntry<'a> {
     }
 }
 
-impl Contact<'_> {
+impl<'a> Contact<'a> {
     pub(crate) fn name(&self) -> &str {
         &self.accn_store.contacts[&self.id].name
     }
@@ -430,6 +434,26 @@ impl Contact<'_> {
             .query(AccnQuery::new().name(self.name()))
             .elders()
             .into_iter()
+    }
+
+    pub(crate) fn payable(self) -> Option<Accn<'a>> {
+        let name = self.name().to_string();
+        let name = "@".to_string() + &name;
+        self.accn_store
+            .liability()
+            .child(&name)
+            .unwrap()
+            .child("payable")
+    }
+
+    pub(crate) fn receivable(self) -> Option<Accn<'a>> {
+        let name = self.name().to_string();
+        let name = "@".to_string() + &name;
+        self.accn_store
+            .asset()
+            .child(&name)
+            .unwrap()
+            .child("receivable")
     }
 }
 

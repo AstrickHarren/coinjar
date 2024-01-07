@@ -4,7 +4,7 @@ use chrono::NaiveDate;
 use uuid::Uuid;
 
 use crate::{
-    accn::{Accn, AccnId, ContactId},
+    accn::{Accn, AccnId, AccnStore, ContactId},
     journal::{Booking, Posting},
     valuable::{Money, Valuable},
 };
@@ -13,10 +13,36 @@ use crate::{
 pub(crate) trait BuildBook {
     fn from_booking(booking: Booking) -> Self;
     fn with_posting(&mut self, accn: Accn, money: Option<Money>) -> &mut Self;
-    fn with_tag<'a>(&mut self, tag_name: &str, args: impl Iterator<Item = &'a str>) -> &mut Self {
+
+    fn with_moneys(&mut self, accn: Accn, moneys: impl IntoIterator<Item = Money>) -> &mut Self {
+        for money in moneys.into_iter() {
+            self.with_posting(accn.clone(), Some(money));
+        }
         self
     }
-    fn into_booking(self) -> Booking;
+
+    fn with_tag<'a>(
+        &mut self,
+        accns: &mut AccnStore,
+        tag_name: &str,
+        args: impl Iterator<Item = &'a str>,
+    ) -> &mut Self {
+        self
+    }
+
+    fn into_booking(self) -> Booking
+    where
+        Self: Sized,
+    {
+        unimplemented!()
+    }
+
+    fn into_booking_with(self, accns: &mut AccnStore) -> Booking
+    where
+        Self: Sized,
+    {
+        self.into_booking()
+    }
 }
 
 pub(crate) struct NoExtension {

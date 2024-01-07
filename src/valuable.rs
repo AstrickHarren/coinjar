@@ -297,6 +297,10 @@ impl Valuable {
     pub(crate) fn into_moneys(self) -> impl Iterator<Item = Money> {
         self.moneys.into_iter()
     }
+
+    pub(crate) fn moneys(&self) -> impl Iterator<Item = &Money> + Clone {
+        self.moneys.iter()
+    }
 }
 
 impl From<Money> for Valuable {
