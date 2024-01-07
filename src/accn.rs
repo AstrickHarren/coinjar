@@ -257,6 +257,23 @@ impl Display for AccnStore {
     }
 }
 
+macro_rules! fn_accn_ty {
+    ($ty:ident) => {
+        paste! {
+            pub(crate) fn [<is_ $ty>](&self) -> bool {
+                let root = self.accn_store.$ty();
+                self.ancesters().any(|a| a == root)
+            }
+        }
+    };
+
+    ($($ty:ident),*) => {
+        $(
+            fn_accn_ty!($ty);
+        )*
+    };
+}
+
 impl Accn<'_> {
     pub(crate) fn ancesters(&self) -> impl Iterator<Item = Accn> + '_ {
         std::iter::successors(Some(self.id), |&id| {
@@ -270,6 +287,8 @@ impl Accn<'_> {
             accn_store: self.accn_store,
         })
     }
+
+    fn_accn_ty!(asset, liability, income, expense, equity);
 
     pub(crate) fn ancesters_exclusive(&self) -> impl Iterator<Item = Accn> + '_ {
         self.ancesters().skip(1)
@@ -350,7 +369,7 @@ impl<'a> AccnMut<'a> {
         }
     }
 
-    pub(crate) fn child_entry(&mut self, name: impl ToString) -> AccnEntry {
+    pub(crate) fn child_entry(self, name: impl ToString) -> AccnEntry<'a> {
         AccnEntry {
             accn_store: self.accn_store,
             name: name.to_string(),
@@ -371,8 +390,8 @@ impl<'a> AccnMut<'a> {
     }
 }
 
-impl AccnEntry<'_> {
-    pub(crate) fn or_open(&mut self) -> AccnMut {
+impl<'a> AccnEntry<'a> {
+    pub(crate) fn or_open(self) -> AccnMut<'a> {
         let id = self
             .accn_store
             .accn_mut(self.parent)
@@ -439,6 +458,21 @@ impl ContactMut<'_> {
     }
 
     pub(crate) fn make_accns(&mut self) {
+        self.payable_entry().or_open();
+        self.receivable_entry().or_open();
+    }
+
+    pub(crate) fn payable_entry(&mut self) -> AccnEntry {
+        let name = self.name().to_string();
+        let name = "@".to_string() + &name;
+        self.accn_store
+            .liability_mut()
+            .child_entry(&name)
+            .or_open()
+            .child_entry("payable")
+    }
+
+    pub(crate) fn receivable_entry(&mut self) -> AccnEntry {
         let name = self.name().to_string();
         let name = "@".to_string() + &name;
         self.accn_store
@@ -446,14 +480,6 @@ impl ContactMut<'_> {
             .child_entry(&name)
             .or_open()
             .child_entry("receivable")
-            .or_open();
-
-        self.accn_store
-            .liability_mut()
-            .child_entry(&name)
-            .or_open()
-            .child_entry("payable")
-            .or_open();
     }
 }
 
@@ -514,6 +540,11 @@ pub(crate) mod tests {
     #[test]
     fn test_example_accn_store() {
         let store = example_accn_store();
+        let food = store.find_accn("food").unwrap();
+        let salary = store.find_accn("salary").unwrap();
+
+        assert!(food.is_expense());
+        assert!(salary.is_income());
         println!("{:#}", store);
     }
 }
