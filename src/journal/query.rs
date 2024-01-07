@@ -184,15 +184,19 @@ impl<'a, 'b> PostingQuerys<'a, 'b> {
         ret
     }
 
-    pub(crate) fn daily_balance(self) -> HashMap<NaiveDate, Valuable> {
+    pub(crate) fn daily_balance(self) -> impl Iterator<Item = BalanceQuery<'a>> {
         self.daily_change()
             .into_iter()
             .sorted_by_key(|(date, _)| *date)
             .scan(Valuable::default(), |balance, (date, change)| {
-                *balance += change;
-                Some((date, balance.clone()))
+                *balance += change.clone();
+                Some(BalanceQuery {
+                    date,
+                    desc: "",
+                    change,
+                    balance: balance.clone(),
+                })
             })
-            .collect()
     }
 
     pub(crate) fn balances(self) -> impl Iterator<Item = BalanceQuery<'a>> {

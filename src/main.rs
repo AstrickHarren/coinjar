@@ -8,7 +8,7 @@ use journal::{
 };
 use tabled::{settings::Style, Table};
 
-use crate::{fmt_table::DisplayTable, journal::query::Query};
+use crate::journal::query::Query;
 
 mod accn;
 mod fmt_table;
@@ -76,8 +76,8 @@ fn income_statement(journal: &Journal) {
     let expense = journal.query_posting(query.clone().accn(journal.accns().expense()));
     println!(
         "Income:\n{}\nExpense\n{}",
-        income.daily_change().into_table(),
-        expense.daily_change().into_table()
+        Table::new(income.daily_balance()).with(Style::modern_rounded()),
+        Table::new(expense.daily_balance()).with(Style::modern_rounded()),
     )
 }
 
