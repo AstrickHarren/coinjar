@@ -22,6 +22,8 @@ currency
     expense/gifts/@Yuki 45 cny
 
 today
-lunch with yuki @target #split(by @Yuki)
+#[split(@Yuki)]
+#[split(@John)]
+lunch with yuki @target
     expense/food 30 usd
     income/food

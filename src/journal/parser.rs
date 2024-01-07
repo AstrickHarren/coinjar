@@ -1,6 +1,7 @@
 use std::{io::Write, marker::PhantomData};
 
 use chrono::{Local, NaiveDate};
+use itertools::Itertools;
 use pest::{
     error::{Error, ErrorVariant},
     iterators::Pair,
@@ -142,33 +143,22 @@ impl<B: BuildBook> CoinParser<B> {
     fn parse_booking(&mut self, date: NaiveDate, pair: Pair<'_, Rule>) -> Result<Booking, String> {
         let span = pair.as_span();
         let mut pairs = pair.into_inner();
+        let tags = pairs
+            .take_while_ref(|p| p.as_rule() == Rule::tag)
+            .collect_vec();
+
         let desc = pairs.next().unwrap().as_str();
         let contact = self.accn_store.parse_contact(pairs.next().unwrap());
-
         let mut booking = B::from_booking(Booking::new(date, desc, contact));
+
+        // NOTE: tags must be parsed before postings
+        for tag in tags {
+            self.parse_tag(tag, &mut booking);
+        }
+
         for pair in pairs {
-            match pair.as_rule() {
-                Rule::posting => {
-                    let mut pairs = pair.into_inner();
-                    let accn = self.accn_store.parse_accn(pairs.next().unwrap());
-                    let money = pairs
-                        .next()
-                        .map(|p| {
-                            Money::from_str(p.as_str(), &self.currency_store).ok_or_else(|| {
-                                pest_custom_err(p.as_span(), "Currency not found").to_string()
-                            })
-                        })
-                        .transpose()?;
-                    booking.with_posting(accn.as_ref(), money);
-                }
-                Rule::tag => {
-                    let mut pairs = pair.into_inner();
-                    let tag_name = pairs.next().unwrap().as_str();
-                    let args = pairs.map(|p| p.as_str());
-                    booking.with_tag(&mut self.accn_store, tag_name, args);
-                }
-                _ => unreachable!(),
-            }
+            debug_assert!(pair.as_rule() == Rule::posting);
+            self.parse_posting(pair, &mut booking)?;
         }
 
         let booking = booking.into_booking_with(&mut self.accn_store);
@@ -176,6 +166,27 @@ impl<B: BuildBook> CoinParser<B> {
             .is_balanced()
             .then_some(booking)
             .ok_or_else(|| pest_custom_err(span, "booking not balanced").to_string())
+    }
+
+    fn parse_posting(&mut self, pair: Pair<'_, Rule>, booking: &mut B) -> Result<(), String> {
+        let mut pairs = pair.into_inner();
+        let accn = self.accn_store.parse_accn(pairs.next().unwrap());
+        let money = pairs
+            .next()
+            .map(|p| {
+                Money::from_str(p.as_str(), &self.currency_store)
+                    .ok_or_else(|| pest_custom_err(p.as_span(), "Currency not found").to_string())
+            })
+            .transpose()?;
+        booking.with_posting(accn.as_ref(), money);
+        Ok(())
+    }
+
+    fn parse_tag(&mut self, pair: Pair<'_, Rule>, booking: &mut B) {
+        let mut pairs = pair.into_inner();
+        let tag_name = pairs.next().unwrap().as_str();
+        let args = pairs.map(|p| p.as_str());
+        booking.with_tag(&mut self.accn_store, tag_name, args);
     }
 }
 

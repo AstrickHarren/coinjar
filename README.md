@@ -20,12 +20,14 @@ today
     expense/food/drinks  $3.50
     asset/cash
 
-    Lunch with John @McDonald's #split(@John)
+    #[split(@John)]
+    Lunch with John @McDonald's
     expense/food/dine out 10 usd
     liability/@Bank of America/credits
 
 yesterday
-    Dinner with John @Fuku Ramen #split(by @John)
+    #[split(by @John)]
+    Dinner with John @Fuku Ramen
     expense/food/dine out 20 eur
 
     Gift for John @LA Airport
@@ -74,8 +76,6 @@ currency
     Bonus flight @CoinJar Airline
     asset/airline-miles/@CoinJar Airline                        5000.00 CJM
     income/gifts                                                -5000.00 CJM
-
-
 ```
 
 Show the money you owe/own @John:
