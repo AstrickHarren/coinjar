@@ -1,5 +1,6 @@
 use std::{collections::HashMap, fmt::Display};
 
+use itertools::Itertools;
 use tabled::{settings::Style, Table};
 
 pub(crate) trait DisplayTable {
@@ -14,7 +15,8 @@ where
     fn into_table(self) -> Table {
         let mut table = Table::new(
             self.into_iter()
-                .map(|(k, v)| (k.to_string(), v.to_string())),
+                .map(|(k, v)| (k.to_string(), v.to_string()))
+                .sorted_by_key(|(k, _)| k.clone()),
         );
         table.with(Style::modern());
         table
