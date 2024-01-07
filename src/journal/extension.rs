@@ -1,3 +1,5 @@
+pub(crate) mod split;
+
 use chrono::NaiveDate;
 use uuid::Uuid;
 

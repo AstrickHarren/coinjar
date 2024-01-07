@@ -17,7 +17,7 @@ pub(crate) struct Currency {
 
 #[derive(Debug, PartialEq, Clone)]
 pub(crate) struct Money {
-    amount: f32,
+    amount: i32,
     currency: Currency,
 }
 
@@ -35,11 +35,21 @@ impl Display for Money {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let symbol = self.currency.symbol.as_ref().map(|s| s.as_str());
         let positve = self.amount.abs();
-        let sign = if self.amount < 0.0 { "-" } else { "" };
+        let sign = if self.amount < 0 { "-" } else { "" };
+
+        let major = positve / 100;
+        let minor = positve % 100;
 
         match symbol {
-            Some(symbol) => write!(f, "{}{}{:.2}", sign, symbol, positve),
-            None => write!(f, "{}{:.2} {}", sign, positve, self.currency.code.as_str()),
+            Some(symbol) => write!(f, "{}{}{}.{:02}", sign, symbol, major, minor),
+            None => write!(
+                f,
+                "{}{}.{:02} {}",
+                sign,
+                major,
+                minor,
+                self.currency.code.as_str()
+            ),
         }
     }
 }
@@ -122,15 +132,12 @@ impl Display for Currency {
 
 impl Money {
     pub(crate) fn from_minor(amount: i32, currency: Currency) -> Self {
-        Self {
-            amount: amount as f32 / 100.0,
-            currency,
-        }
+        Self { amount, currency }
     }
 
     pub(crate) fn from_major(amount: i32, currency: Currency) -> Self {
         Self {
-            amount: amount as f32,
+            amount: amount * 100,
             currency,
         }
     }
@@ -150,18 +157,22 @@ impl Money {
                 // 1. currency symbol is first (e.g. -$100.00)
                 let mut chars = first.chars();
                 let symbol = chars.next().unwrap().to_string();
-                let amount = chars.as_str().parse::<f32>().unwrap();
+                let amount = chars.as_str();
                 let currency = currency_store.currency_by_symbol(&symbol).unwrap();
                 (amount, currency.clone())
             }
             Some(last) => {
                 // 2. currency code is last (e.g. -100.00 USD)
-                let amount = first.parse::<f32>().unwrap();
+                let amount = first;
                 let currency = currency_store.currency_by_code(&last.to_uppercase())?;
                 (amount, currency.clone())
             }
         };
 
+        let (major, minor) = amount.split_once('.').unwrap_or((amount, "00"));
+        let major = major.parse::<i32>().ok()?;
+        let minor = minor.parse::<i32>().ok()?;
+        let amount = major * 100 + minor;
         let amount = if is_negative { -amount } else { amount };
         Some(Self { amount, currency })
     }
@@ -250,7 +261,7 @@ impl Valuable {
     }
 
     pub(crate) fn simplify(&mut self) {
-        self.moneys.retain(|m| m.amount != 0.0);
+        self.moneys.retain(|m| m.amount != 0);
     }
 
     pub(crate) fn is_zero(&self) -> bool {
@@ -334,5 +345,32 @@ pub(crate) mod test {
         let eur_ = Money::from_str("1000 EUR", &currency_store).unwrap();
         println!("{}", eur);
         assert_eq!(eur, eur_);
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn test_round_half_even() {
+        // let amuonts = vec![
+        //     1.005, 1.015, 1.025, 1.035, 1.045, 1.055, 1.065, 1.075, 1.085, 1.095,
+        //     -1.005, -1.015, -1.025, -1.035, -1.045, -1.055, -1.065, -1.075, -1.085, -1.095,
+        // ];
+
+        // let rounded = amuonts
+        //     .iter()
+        //     .map(|a| Money {
+        //         amount: *a,
+        //         currency: Currency::usd(),
+        //     })
+        //     .map(|m| m.round_half_even())
+        //     .map(|m| m.amount)
+        //     .collect::<Vec<_>>();
+
+        // assert_eq!(
+        //     rounded,
+        //     vec![
+        //         1.00, 1.02, 1.02, 1.04, 1.04, 1.06, 1.06, 1.08, 1.08, 1.10,
+        //         -1.00, -1.02, -1.02, -1.04, -1.04, -1.06, -1.06, -1.08, -1.08, -1.10,
+        //     ]
+        // )
     }
 }
