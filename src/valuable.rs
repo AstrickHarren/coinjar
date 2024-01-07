@@ -74,7 +74,7 @@ impl Currency {
         Self {
             name: name.map(|n| n.to_string().into()),
             symbol: symbol.map(|s| s.to_string().into()),
-            code: Arc::new(code.to_string().into()),
+            code: Arc::new(code.to_string()),
         }
     }
 
@@ -143,7 +143,7 @@ impl Money {
     }
 
     pub(crate) fn from_str(mut money: &str, currency_store: &CurrencyStore) -> Option<Self> {
-        let is_negative = money.chars().next().unwrap() == '-';
+        let is_negative = money.starts_with('-');
         if is_negative {
             money = &money[1..];
         }
@@ -380,10 +380,8 @@ pub(crate) mod test {
     #[test]
     #[rustfmt::skip]
     fn test_round_half_even() {
-        let amuonts = vec![
-            20_01, 20_03, 20_05, 20_07, 20_09, 20_11, 20_13, 20_15, 20_17, 20_19,
-            -20_01, -20_03, -20_05, -20_07, -20_09, -20_11, -20_13, -20_15, -20_17, -20_19,
-        ];
+        let amuonts = [20_01, 20_03, 20_05, 20_07, 20_09, 20_11, 20_13, 20_15, 20_17, 20_19,
+            -20_01, -20_03, -20_05, -20_07, -20_09, -20_11, -20_13, -20_15, -20_17, -20_19];
 
         let rounded = amuonts
             .iter()

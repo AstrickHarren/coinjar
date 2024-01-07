@@ -35,7 +35,7 @@ impl AccnStore {
         let mut pairs = pair.into_inner();
         let mut accn = self.root(pairs.next().unwrap().as_str()).unwrap().id();
 
-        while let Some(pair) = pairs.next() {
+        for pair in pairs {
             let name = pair.as_str();
 
             let name = match pair.as_rule() {
@@ -59,7 +59,7 @@ impl AccnStore {
 
     fn parse_contact(&mut self, pair: Pair<'_, Rule>) -> ContactMut {
         let name = pair.as_str();
-        debug_assert!(name.starts_with("@"));
+        debug_assert!(name.starts_with('@'));
 
         let name = &name[1..];
         let id = self

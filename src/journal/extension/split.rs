@@ -48,9 +48,9 @@ impl<B: BuildBook> BuildBook for Split<B> {
     ) -> &mut Self {
         if tag_name.to_lowercase() == "split" {
             for arg in args {
-                match arg.split_once(" ").map(|(a, b)| (a.trim(), b.trim())) {
+                match arg.split_once(' ').map(|(a, b)| (a.trim(), b.trim())) {
                     Some(("by", name)) => {
-                        let name = name.strip_prefix("@").unwrap();
+                        let name = name.strip_prefix('@').unwrap();
                         let mut contact = accns.add_contact(name);
                         contact.payable_entry().or_open();
                         match &self.payer {
@@ -63,7 +63,7 @@ impl<B: BuildBook> BuildBook for Split<B> {
                         }
                     }
                     None => {
-                        let arg = arg.strip_prefix("@").unwrap();
+                        let arg = arg.strip_prefix('@').unwrap();
                         let mut contact = accns.add_contact(arg);
                         contact.receivable_entry().or_open();
                         self.debtor.push(contact.id());
@@ -123,6 +123,6 @@ impl<B: BuildBook> Split<B> {
     }
 
     fn is_effective(&self) -> bool {
-        self.debtor.len() > 0 || self.payer.is_some()
+        !self.debtor.is_empty() || self.payer.is_some()
     }
 }

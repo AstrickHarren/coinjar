@@ -123,7 +123,7 @@ impl AccnStore {
         let accn_data = AccnData {
             id,
             name: name.to_string(),
-            parent: parent.map(|id| id.into()),
+            parent,
         };
         self.accn_data.insert(id, accn_data);
         AccnMut {
@@ -243,16 +243,16 @@ impl AccnStore {
 impl Display for AccnStore {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if f.alternate() {
-            println!("{}", "Accounts: ".purple());
+            writeln!(f, "{}", "Accounts: ".purple())?;
         }
         self.accns()
             .map(|a| a.abs_name())
             .sorted()
             .format("\n")
             .fmt(f)?;
-        println!("\n");
+        writeln!(f, "\n")?;
         if f.alternate() {
-            println!("{}", "Contacts: ".purple());
+            writeln!(f, "{}", "Contacts: ".purple())?;
         }
         self.contacts
             .values()
@@ -460,9 +460,9 @@ impl<'a> Contact<'a> {
 macro_rules! impl_into {
     ($name:ident : $type:ty; $($target:ty),*) => {
         $(
-        impl Into<$type> for $target {
-            fn into(self) -> $type {
-                self.$name
+        impl From<$target> for $type {
+            fn from(val: $target) -> Self {
+                val.$name
             }
         }
         )*
@@ -513,9 +513,9 @@ impl ContactMut<'_> {
     }
 }
 
-impl Into<AccnId> for Accn<'_> {
-    fn into(self) -> AccnId {
-        self.id
+impl From<Accn<'_>> for AccnId {
+    fn from(val: Accn<'_>) -> Self {
+        val.id
     }
 }
 
