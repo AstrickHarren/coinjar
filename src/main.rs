@@ -39,6 +39,13 @@ enum Command {
     Contact {
         #[clap(required = true)]
         name: String,
+        #[clap(
+            long,
+            short,
+            default_value = "false",
+            help = "Show all transactions, by default only shows Payable and Receivable from the contact"
+        )]
+        all: bool,
     },
 }
 
@@ -57,7 +64,7 @@ fn main() {
         }
         Command::Format => journal.to_file(&args.file_path),
         Command::IncomeStatement => income_statement(&journal),
-        Command::Contact { name } => contact_details(&journal, &name),
+        Command::Contact { name, all } => contact_details(&journal, &name, all),
     }
 }
 
@@ -74,12 +81,20 @@ fn income_statement(journal: &Journal) {
     )
 }
 
-fn contact_details(journal: &Journal, name: &str) {
+fn contact_details(journal: &Journal, name: &str, show_all: bool) {
     let contact = journal.accns().find_contact(name).unwrap_or_else(|| {
         eprintln!("No contact found with name: {}", name);
         std::process::exit(1);
     });
-    let query = journal.query_contact(contact);
+
+    let query = if show_all {
+        journal.query_posting(Query::accns(contact.accns()))
+    } else {
+        journal.query_posting(Query::accns(
+            contact.payable().into_iter().chain(contact.receivable()),
+        ))
+    };
+
     println!(
         "{} {}\n{}",
         "Contact".purple().bold(),

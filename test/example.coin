@@ -1,6 +1,7 @@
 currency
     USD $ -- US dollars
     EUR € -- Euro
+    CNY -- Chinese Yuan
 
 2024-01-05
     Lunch with Yuki @McDonald's
@@ -18,4 +19,9 @@ currency
     liability/@Yuki/payable                                        -$30.00
     asset/cash                                                     -30 EUR
     expense/food
+    expense/gifts/@Yuki 45 cny
 
+today
+lunch with yuki @target #split(by @Yuki)
+    expense/food 30 usd
+    income/food

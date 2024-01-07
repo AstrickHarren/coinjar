@@ -60,7 +60,7 @@ pub(crate) struct AccnEntry<'a> {
     parent: AccnId,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub(crate) struct Contact<'a> {
     id: ContactId,
     accn_store: &'a AccnStore,
@@ -439,21 +439,13 @@ impl<'a> Contact<'a> {
     pub(crate) fn payable(self) -> Option<Accn<'a>> {
         let name = self.name().to_string();
         let name = "@".to_string() + &name;
-        self.accn_store
-            .liability()
-            .child(&name)
-            .unwrap()
-            .child("payable")
+        self.accn_store.liability().child(&name)?.child("payable")
     }
 
     pub(crate) fn receivable(self) -> Option<Accn<'a>> {
         let name = self.name().to_string();
         let name = "@".to_string() + &name;
-        self.accn_store
-            .asset()
-            .child(&name)
-            .unwrap()
-            .child("receivable")
+        self.accn_store.asset().child(&name)?.child("receivable")
     }
 }
 

@@ -166,15 +166,15 @@ pub(crate) mod test {
 
         let alice = accn_store.find_contact("Alice").unwrap();
 
-        let breakfast = Booking::new(today, "Breakfast", &alice)
+        let breakfast = Booking::new(today, "Breakfast", alice)
             .with_posting(beer.id(), Money::from_major(500, Currency::usd()))
             .with_posting(salary.id(), Money::from_major(-500, Currency::usd()));
 
-        let lunch = Booking::new(today, "Lunch", &alice)
+        let lunch = Booking::new(today, "Lunch", alice)
             .with_posting(beer.id(), Money::from_major(500, Currency::usd()))
             .with_posting(salary.id(), Money::from_major(-500, Currency::usd()));
 
-        let dinner = Booking::new(yesterday, "Dinner", &alice)
+        let dinner = Booking::new(yesterday, "Dinner", alice)
             .with_posting(beer.id(), Money::from_major(500, Currency::usd()))
             .with_posting(salary.id(), Money::from_major(-500, Currency::usd()));
 
