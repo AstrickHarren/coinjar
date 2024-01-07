@@ -1,7 +1,7 @@
 use std::{
     fmt::{Display, Write},
     iter::Sum,
-    ops::{Add, AddAssign, Neg},
+    ops::{Add, AddAssign, Div, DivAssign, Neg},
     sync::Arc,
 };
 
@@ -203,6 +203,32 @@ impl AddAssign<Money> for Money {
     }
 }
 
+impl Div<i32> for Money {
+    type Output = Money;
+
+    fn div(self, rhs: i32) -> Self::Output {
+        let mut money = self.clone();
+        money /= rhs;
+        money
+    }
+}
+
+impl DivAssign<i32> for Money {
+    fn div_assign(&mut self, rhs: i32) {
+        let sign = self.amount.signum();
+        let amount = self.amount.abs();
+        let amount = amount / rhs;
+        let minor = amount % rhs;
+
+        // half even rounding
+        if (minor > rhs / 2) || (minor == rhs / 2 && amount % 2 == 1 && rhs % 2 == 0) {
+            self.amount = (amount + 1) * sign;
+        } else {
+            self.amount = amount * sign;
+        }
+    }
+}
+
 impl CurrencyStore {
     pub(crate) fn new() -> Self {
         Self {
@@ -350,27 +376,27 @@ pub(crate) mod test {
     #[test]
     #[rustfmt::skip]
     fn test_round_half_even() {
-        // let amuonts = vec![
-        //     1.005, 1.015, 1.025, 1.035, 1.045, 1.055, 1.065, 1.075, 1.085, 1.095,
-        //     -1.005, -1.015, -1.025, -1.035, -1.045, -1.055, -1.065, -1.075, -1.085, -1.095,
-        // ];
+        let amuonts = vec![
+            20_01, 20_03, 20_05, 20_07, 20_09, 20_11, 20_13, 20_15, 20_17, 20_19,
+            -20_01, -20_03, -20_05, -20_07, -20_09, -20_11, -20_13, -20_15, -20_17, -20_19,
+        ];
 
-        // let rounded = amuonts
-        //     .iter()
-        //     .map(|a| Money {
-        //         amount: *a,
-        //         currency: Currency::usd(),
-        //     })
-        //     .map(|m| m.round_half_even())
-        //     .map(|m| m.amount)
-        //     .collect::<Vec<_>>();
+        let rounded = amuonts
+            .iter()
+            .map(|a| Money {
+                amount: *a,
+                currency: Currency::usd(),
+            })
+            .map(|m| m / 2)
+            .map(|m| m.amount)
+            .collect::<Vec<_>>();
 
-        // assert_eq!(
-        //     rounded,
-        //     vec![
-        //         1.00, 1.02, 1.02, 1.04, 1.04, 1.06, 1.06, 1.08, 1.08, 1.10,
-        //         -1.00, -1.02, -1.02, -1.04, -1.04, -1.06, -1.06, -1.08, -1.08, -1.10,
-        //     ]
-        // )
+        assert_eq!(
+            rounded,
+            vec![
+                10_00, 10_02, 10_02, 10_04, 10_04, 10_06, 10_06, 10_08, 10_08, 10_10,
+                -10_00, -10_02, -10_02, -10_04, -10_04, -10_06, -10_06, -10_08, -10_08, -10_10,
+            ]
+        )
     }
 }
