@@ -171,9 +171,15 @@ impl AccnStore {
     }
 
     pub(crate) fn add_contact(&mut self, name: impl ToString) -> ContactMut {
+        if let Some(contact) = self.find_contact_mut(&name.to_string()) {
+            return ContactMut {
+                id: contact.id,
+                accn_store: self,
+            };
+        }
+
         let id = Uuid::new_v4();
         let name = name.to_string();
-
         let contact = ContactData {
             id,
             name: name.clone(),
