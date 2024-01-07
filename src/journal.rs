@@ -1,3 +1,4 @@
+#[macro_use]
 pub(crate) mod extension;
 pub(crate) mod parser;
 pub(crate) mod query;

@@ -1,3 +1,4 @@
+pub(crate) mod relative_date;
 pub(crate) mod split;
 
 use chrono::NaiveDate;
@@ -101,4 +102,18 @@ impl NoExtension {
     fn inbalance(&self) -> Valuable {
         self.postings.iter().map(|p| -p.money.clone()).sum()
     }
+}
+
+macro_rules! allow_extensions {
+    ($name:ty) => {
+        paste::paste! {
+            $name<NoExtension>
+        }
+    };
+
+    ($head:ty, $($tail:ty),+) => {
+        paste::paste! {
+            $head<allow_extensions!($($tail),+)>
+        }
+    };
 }

@@ -24,6 +24,7 @@ currency
 today
 #[split(@Yuki)]
 #[split(@John)]
+#[date(1)]
 lunch with yuki @target
     expense/food 30 usd
     income/food

@@ -11,7 +11,7 @@ check:
     @ cargo check
 
 run *Args='check -v':
-    @ cargo run -- {{Args}}
+    @ cargo run -- -f test/example.coin {{Args}}
 
 test *Args:
     #!/usr/bin/env bash

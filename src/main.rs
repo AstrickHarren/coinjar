@@ -8,10 +8,11 @@ use journal::{
 };
 use tabled::{settings::Style, Table};
 
-use crate::journal::query::Query;
+use crate::journal::{extension::relative_date::RelativeDate, query::Query};
 
 mod accn;
 mod fmt_table;
+#[macro_use]
 mod journal;
 mod valuable;
 
@@ -50,8 +51,9 @@ enum Command {
 }
 
 fn main() {
+    type Extension = allow_extensions!(Split, RelativeDate);
     let args = Args::parse();
-    let journal = Journal::from_file::<Split<NoExtension>>(&args.file_path).unwrap_or_else(|e| {
+    let journal = Journal::from_file::<Extension>(&args.file_path).unwrap_or_else(|e| {
         eprintln!("Error parsing journal: {}", e);
         std::process::exit(1);
     });

@@ -71,7 +71,9 @@ impl<B: BuildBook> BuildBook for Split<B> {
                     _ => unreachable!(),
                 }
             }
-        };
+        } else {
+            self.inner.with_tag(accns, tag_name, args);
+        }
 
         self
     }

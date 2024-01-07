@@ -23,7 +23,7 @@ contact      = @{ "@" ~ words }
 
 WHITESPACE = _{ " " }
 
-arg            = @{ (ASCII_ALPHA | " " | "@")+ }
+arg            = @{ (ASCII_ALPHANUMERIC | " " | "@" | "-")+ }
 args           = _{ arg ~ ("," ~ arg)* }
 tag            =  { "#" ~ "[" ~ arg ~ ("(" ~ args? ~ ")")? ~ "]" }
 tags           = _{ (tag ~ "\n")* }
