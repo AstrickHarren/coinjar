@@ -1,4 +1,5 @@
 #![allow(dead_code)]
+#![feature(associated_type_bounds)]
 
 use clap::{Parser, Subcommand};
 use colored::Colorize;

@@ -31,6 +31,7 @@ struct CoinParser<B: BuildBook = NoExtension> {
     booking_builder: PhantomData<B>,
 
     global_tags: Vec<Vec<String>>,
+    regional_tags: Vec<Vec<String>>,
 }
 
 impl AccnStore {
@@ -69,6 +70,7 @@ impl<B: BuildBook> CoinParser<B> {
             bookings: Vec::new(),
             booking_builder: PhantomData,
             global_tags: Vec::new(),
+            regional_tags: Vec::new(),
         }
     }
 
@@ -105,6 +107,10 @@ impl<B: BuildBook> CoinParser<B> {
 
     fn parse_chapter(&mut self, pair: Pair<'_, Rule>) -> Result<(), String> {
         let mut pairs = pair.into_inner();
+        pairs
+            .take_while_ref(|p| p.as_rule() == Rule::tag)
+            .for_each(|p| self.parse_regional_tag(p));
+
         let date = self.parse_date(pairs.next().unwrap());
 
         for pair in pairs {
@@ -116,6 +122,8 @@ impl<B: BuildBook> CoinParser<B> {
                 _ => unreachable!(),
             }
         }
+
+        self.regional_tags.clear();
 
         Ok(())
     }
@@ -132,15 +140,15 @@ impl<B: BuildBook> CoinParser<B> {
         let mut booking = B::from_booking(Booking::new(date, desc, contact));
 
         // NOTE: tags must be parsed before postings
-        // global tags
-
-        for tag in &self.global_tags {
+        // global and regional tags
+        for tag in self.global_tags.iter().chain(&self.regional_tags) {
             booking.with_tag(&mut self.accn_store, &tag[0], tag.into_iter().skip(1));
         }
 
         // local tags
         for tag in tags {
-            self.parse_tag(tag, &mut booking);
+            let (tag_name, args) = parse_tag(tag);
+            booking.with_tag(&mut self.accn_store, &tag_name, args);
         }
 
         for pair in pairs {
@@ -169,23 +177,28 @@ impl<B: BuildBook> CoinParser<B> {
         Ok(())
     }
 
-    fn parse_tag(&mut self, pair: Pair<'_, Rule>, booking: &mut B) {
-        let mut pairs = pair.into_inner();
-        let tag_name = pairs.next().unwrap().as_str();
-        let args = pairs.map(|p| p.as_str());
-        booking.with_tag(&mut self.accn_store, tag_name, args);
-    }
-
     fn parse_global_tag(&mut self, pair: Pair<'_, Rule>) {
-        let mut pairs = pair.into_inner();
-        let mut tag = Vec::new();
-        let tag_name = pairs.next().unwrap().as_str().to_string();
-        let args = pairs.map(|p| p.as_str().to_string());
-
-        tag.push(tag_name);
-        tag.extend(args);
+        let (tag_name, args) = parse_tag(pair);
+        let tag = std::iter::once(tag_name)
+            .chain(args.map(|arg| arg.as_ref().to_string()))
+            .collect_vec();
         self.global_tags.push(tag);
     }
+
+    fn parse_regional_tag(&mut self, pair: Pair<'_, Rule>) {
+        let (tag_name, args) = parse_tag(pair);
+        let tag = std::iter::once(tag_name)
+            .chain(args.map(|arg| arg.as_ref().to_string()))
+            .collect_vec();
+        self.regional_tags.push(tag);
+    }
+}
+
+fn parse_tag<'a>(pair: Pair<'a, Rule>) -> (String, impl Iterator<Item: AsRef<str>> + 'a) {
+    let mut pairs = pair.into_inner();
+    let tag_name = pairs.next().unwrap().as_str().to_string();
+    let args = pairs.map(|p| p.as_str().to_string());
+    (tag_name, args)
 }
 
 impl Journal {
@@ -196,6 +209,7 @@ impl Journal {
             bookings: Vec::new(),
             booking_builder: PhantomData,
             global_tags: Vec::new(),
+            regional_tags: Vec::new(),
         };
         parser.parse_coinfile(file_path)
     }

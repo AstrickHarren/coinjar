@@ -23,10 +23,14 @@ currency
     expense/food
     expense/gifts/@Yuki 45 cny
 
-today
 #[split(@Yuki)]
-#[split(@John)]
 #[date(1)]
+today
 lunch with yuki @target
+    expense/food 30 usd
+    income/salary
+
+#[split(by @John)]
+dinner with yuki and john @target
     expense/food 30 usd
     income/salary

@@ -31,7 +31,7 @@ tags           = _{ (tag ~ "\n")* }
 booking_header = _{ tags ~ booking_desc ~ contact }
 
 booking  =  { booking_header ~ ("\n" ~ posting)* }
-chapter  =  { date ~ "\n"+ ~ booking ~ ("\n"* ~ booking)* }
+chapter  =  { tags ~ date ~ "\n"+ ~ booking ~ ("\n"* ~ booking)* }
 chapters = _{ chapter ~ ("\n"* ~ chapter)* }
 
 code       = @{ ASCII_ALPHA_UPPER+ }
