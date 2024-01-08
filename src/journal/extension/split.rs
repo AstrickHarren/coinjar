@@ -110,6 +110,14 @@ impl<B: BuildBook> BuildBook for Split<B> {
 
         self.inner.into_booking_with(accns)
     }
+
+    fn parse_accn<'a>(
+        &mut self,
+        accns: &'a mut AccnStore,
+        names: impl IntoIterator<Item = impl std::borrow::Borrow<str>>,
+    ) -> crate::accn::AccnMut<'a> {
+        self.inner.parse_accn(accns, names)
+    }
 }
 
 impl<B: BuildBook> Split<B> {

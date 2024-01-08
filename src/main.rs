@@ -8,7 +8,10 @@ use journal::{
 };
 use tabled::{settings::Style, Table};
 
-use crate::journal::{extension::relative_date::RelativeDate, query::Query};
+use crate::journal::{
+    extension::{fuzzy_accn::FuzzyAccn, relative_date::RelativeDate},
+    query::Query,
+};
 
 mod accn;
 mod fmt_table;
@@ -51,7 +54,7 @@ enum Command {
 }
 
 fn main() {
-    type Extension = allow_extensions!(Split, RelativeDate);
+    type Extension = allow_extensions!(Split, RelativeDate, FuzzyAccn);
     let args = Args::parse();
     let journal = Journal::from_file::<Extension>(&args.file_path).unwrap_or_else(|e| {
         eprintln!("Error parsing journal: {}", e);

@@ -1,3 +1,4 @@
+pub(crate) mod fuzzy_accn;
 pub(crate) mod relative_date;
 pub(crate) mod split;
 
@@ -118,6 +119,10 @@ impl NoExtension {
 }
 
 macro_rules! allow_extensions {
+    () => {
+        NoExtension
+    };
+
     ($name:ty) => {
         paste::paste! {
             $name<NoExtension>

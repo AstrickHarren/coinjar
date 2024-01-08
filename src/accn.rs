@@ -1,4 +1,4 @@
-mod query;
+pub(crate) mod query;
 
 use colored::Colorize;
 use itertools::Itertools;
@@ -124,6 +124,14 @@ macro_rules! root_accn {
                     _ => None,
                 }
             }
+        }
+
+        pub(crate) fn roots(&self) -> impl Iterator<Item = Accn> + '_ {
+            let ids = vec![$(self.root_accns.$name),*];
+            ids.into_iter().map(move |id| Accn{
+                id,
+                accn_store: self,
+            })
         }
     };
 }
@@ -339,7 +347,7 @@ impl<'a> Accn<'a> {
         self.id
     }
 
-    fn children(self) -> impl Iterator<Item = Accn<'a>> {
+    pub(crate) fn children(self) -> impl Iterator<Item = Accn<'a>> {
         self.accn_store
             .accns()
             .filter(move |accn| accn.parent().map(|p| p.id()) == Some(self.id))
@@ -373,6 +381,13 @@ impl Hash for Accn<'_> {
 
 impl<'a> AccnMut<'a> {
     pub(crate) fn as_ref(&self) -> Accn<'_> {
+        Accn {
+            id: self.id,
+            accn_store: self.accn_store,
+        }
+    }
+
+    pub(crate) fn into_ref(self) -> Accn<'a> {
         Accn {
             id: self.id,
             accn_store: self.accn_store,
@@ -449,7 +464,7 @@ impl<'a> Contact<'a> {
 
     pub(crate) fn accns(&self) -> impl Iterator<Item = Accn> + '_ {
         self.accn_store
-            .query(AccnQuery::new().name(self.name()))
+            .query(AccnQuery::name(self.name()))
             .elders()
             .into_iter()
     }

@@ -8,7 +8,8 @@ words = @{ word ~ (" " ~ word)* }
 natural_date = @{ "today" | "yesterday" }
 date         = @{ year ~ "-" ~ month ~ "-" ~ day | natural_date }
 
-root_accn = @{ "income" | "expense" | "asset" | "liability" | "equity" }
+// root_accn = @{ "income" | "expense" | "asset" | "liability" | "equity" }
+root_accn = @{ word }
 accn      =  { root_accn ~ ("/" ~ (words | contact))+ }
 
 amount         = @{ ASCII_DIGIT+ ~ ("." ~ ASCII_DIGIT{2})? | ASCII_DIGIT }
@@ -22,6 +23,7 @@ booking_desc = @{ words }
 contact      = @{ "@" ~ words }
 
 WHITESPACE = _{ " " }
+COMMENT    = _{ ";" ~ (!"\n" ~ ANY)* }
 
 arg            = @{ (ASCII_ALPHANUMERIC | " " | "@" | "-" | "_")+ }
 args           = _{ arg ~ ("," ~ arg)* }

@@ -5,7 +5,7 @@ use itertools::Itertools;
 use super::{Accn, AccnStore};
 
 #[derive(Debug, Default, Clone)]
-pub(super) enum AccnQuery {
+pub(crate) enum AccnQuery {
     #[default]
     All,
     Name(String),
@@ -36,13 +36,13 @@ impl AccnQuery {
         Self::default()
     }
 
-    pub(crate) fn name(self, name: impl ToString) -> Self {
+    pub(crate) fn name(name: impl ToString) -> Self {
         Self::Name(name.to_string())
     }
 }
 
 impl AccnStore {
-    pub(super) fn query(&self, query: AccnQuery) -> AccnUnion<Box<dyn Iterator<Item = Accn> + '_>> {
+    pub(crate) fn query(&self, query: AccnQuery) -> AccnUnion<Box<dyn Iterator<Item = Accn> + '_>> {
         match query {
             AccnQuery::Name(name) => AccnUnion {
                 accns: Box::new(self.accns().filter(move |a| a.name().contains(&name))),
@@ -83,7 +83,7 @@ mod test {
     #[test]
     fn test_elders() {
         let store = example_accn_store();
-        let query = AccnQuery::new().name("drinks".to_string());
+        let query = AccnQuery::name("drinks".to_string());
         let vec = store
             .query(query.clone())
             .into_iter()

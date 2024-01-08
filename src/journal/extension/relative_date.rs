@@ -61,4 +61,12 @@ impl<B: BuildBook> BuildBook for RelativeDate<B> {
         booking.date = booking.date + chrono::Duration::days(self.diff.unwrap_or(0) as i64);
         booking
     }
+
+    fn parse_accn<'a>(
+        &mut self,
+        accns: &'a mut AccnStore,
+        names: impl IntoIterator<Item = impl std::borrow::Borrow<str>>,
+    ) -> crate::accn::AccnMut<'a> {
+        self.inner.parse_accn(accns, names)
+    }
 }
