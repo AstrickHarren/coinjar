@@ -3,7 +3,7 @@ use std::borrow::Borrow;
 use itertools::Itertools;
 
 use crate::{
-    accn::{query::AccnQuery, AccnMut, AccnStore},
+    accn::{query::AccnQuery, Accn, AccnMut, AccnStore},
     journal::Booking,
 };
 
@@ -12,7 +12,9 @@ use super::BuildBook;
 pub(crate) struct FuzzyAccn<B: BuildBook> {
     inner: B,
     enabled: bool,
+
     recursive: bool,
+    root: bool,
 }
 
 impl<B: BuildBook> BuildBook for FuzzyAccn<B> {
@@ -21,6 +23,7 @@ impl<B: BuildBook> BuildBook for FuzzyAccn<B> {
             inner: B::from_booking(booking),
             enabled: false,
             recursive: false,
+            root: false,
         }
     }
 
@@ -41,11 +44,17 @@ impl<B: BuildBook> BuildBook for FuzzyAccn<B> {
         &mut self,
         accns: &mut AccnStore,
         tag_name: &str,
-        mut args: impl Iterator<Item = impl AsRef<str>>,
+        args: impl Iterator<Item = impl AsRef<str>>,
     ) -> &mut Self {
         if tag_name == "fuzzy_accn" {
             self.enabled = true;
-            self.recursive = args.any(|arg| matches!(arg.as_ref(), "recursive" | "deep"));
+            for arg in args {
+                match arg.as_ref() {
+                    "recursive" | "deep" => self.recursive = true,
+                    "root" => self.root = true,
+                    _ => panic!("unknown argument for tag 'fuzzy_accn': {}", arg.as_ref()),
+                }
+            }
         } else {
             self.inner.with_tag(accns, tag_name, args);
         }
@@ -73,12 +82,16 @@ impl<B: BuildBook> BuildBook for FuzzyAccn<B> {
                     .unwrap_or_else(|_| panic!("accn not found: {}", name.borrow()))
                     .id()
             })
-            .unwrap_or_else(|iter| {
-                if self.recursive {
-                    deep_parse_accn(iter, accns)
-                } else {
+            .unwrap_or_else(|mut iter| match (self.recursive, self.root) {
+                (true, _) => deep_parse_accn(iter, accns),
+                (false, true) => {
+                    let root = fuzzy_root(accns, iter.next().unwrap().borrow())
+                        .name()
+                        .to_string();
+                    let iter = std::iter::once(root).chain(iter.map(|s| s.borrow().to_string()));
                     self.inner.parse_accn(accns, iter).id()
                 }
+                (false, false) => self.inner.parse_accn(accns, iter).id(),
             });
 
         accns.accn_mut(id)
@@ -94,12 +107,7 @@ fn deep_parse_accn(
     let mut iter = names.clone().into_iter();
 
     let root = iter.next().unwrap();
-    let mut accn = accns
-        .roots()
-        .filter(|accn| accn.name().contains(&root.to_lowercase()))
-        .exactly_one()
-        .unwrap_or_else(|_| panic!("root accn not found, got {}", root))
-        .id();
+    let mut accn = fuzzy_root(accns, &root).id();
 
     for name in iter {
         name.strip_prefix('@').inspect(|name| {
@@ -124,5 +132,14 @@ fn deep_parse_accn(
         });
     }
 
+    accn
+}
+
+fn fuzzy_root<'a>(accns: &'a mut AccnStore, root: &str) -> Accn<'a> {
+    let accn = accns
+        .roots()
+        .filter(|accn| accn.name().contains(&root.to_lowercase()))
+        .exactly_one()
+        .unwrap_or_else(|_| panic!("root accn not found, got {}", root));
     accn
 }
