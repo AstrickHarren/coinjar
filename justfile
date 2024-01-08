@@ -13,6 +13,9 @@ check:
 run *Args='check -v':
     @ cargo run -- -f test/example.coin {{Args}}
 
+run-private *Args='check -v':
+    @ cargo run -- -f private/journal.coin {{Args}}
+
 test *Args:
     #!/usr/bin/env bash
     Args={{Args}}
