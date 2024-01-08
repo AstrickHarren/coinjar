@@ -23,7 +23,7 @@ contact      = @{ "@" ~ words }
 
 WHITESPACE = _{ " " }
 
-arg            = @{ (ASCII_ALPHANUMERIC | " " | "@" | "-")+ }
+arg            = @{ (ASCII_ALPHANUMERIC | " " | "@" | "-" | "_")+ }
 args           = _{ arg ~ ("," ~ arg)* }
 tag            =  { "#" ~ "[" ~ arg ~ ("(" ~ args? ~ ")")? ~ "]" }
 tags           = _{ (tag ~ "\n")* }
@@ -38,4 +38,4 @@ symbol     = @{ ANY }
 currency   =  { code ~ (!"--" ~ symbol)? ~ ("--" ~ words)? }
 currencies = _{ "currency" ~ "\n"* ~ currency ~ ("\n" ~ currency)* }
 
-grammar = _{ SOI ~ currencies? ~ "\n"* ~ chapters? ~ "\n"* ~ EOI }
+grammar = _{ SOI ~ tags ~ "\n"* ~ currencies? ~ "\n"* ~ chapters? ~ "\n"* ~ EOI }

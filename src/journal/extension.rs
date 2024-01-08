@@ -31,19 +31,7 @@ pub(crate) trait BuildBook {
         self
     }
 
-    fn into_booking(self) -> Booking
-    where
-        Self: Sized,
-    {
-        unimplemented!()
-    }
-
-    fn into_booking_with(self, accns: &mut AccnStore) -> Booking
-    where
-        Self: Sized,
-    {
-        self.into_booking()
-    }
+    fn into_booking_with(self, accns: &mut AccnStore) -> Booking;
 }
 
 pub(crate) struct NoExtension {
@@ -76,7 +64,7 @@ impl BuildBook for NoExtension {
         self
     }
 
-    fn into_booking(mut self) -> Booking {
+    fn into_booking_with(mut self, _: &mut AccnStore) -> Booking {
         self.postings.extend(
             self.inferred_posting
                 .map(|accn| {
