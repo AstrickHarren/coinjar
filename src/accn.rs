@@ -114,6 +114,17 @@ macro_rules! root_accn {
                 _ => None,
             }
         }
+
+        pub(crate) fn root_mut(&mut self, name: &str) -> Option<AccnMut> {
+            paste!{
+                match name {
+                        $(
+                            stringify!($name) => Some(self.[<$name _mut>]()),
+                        )*
+                    _ => None,
+                }
+            }
+        }
     };
 }
 

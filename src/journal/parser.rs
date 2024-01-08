@@ -34,25 +34,14 @@ struct CoinParser<B: BuildBook = NoExtension> {
 impl AccnStore {
     fn parse_accn(&mut self, pair: Pair<'_, Rule>) -> AccnMut<'_> {
         let mut pairs = pair.into_inner();
-        let mut accn = self.root(pairs.next().unwrap().as_str()).unwrap().id();
+        let mut accn = self.root_mut(pairs.next().unwrap().as_str()).unwrap().id();
 
         for pair in pairs {
             let name = pair.as_str();
-
-            let name = match pair.as_rule() {
-                Rule::words => name.to_string(),
-                Rule::contact => {
-                    self.parse_contact(pair);
-                    name.to_string()
-                }
-                _ => unreachable!(
-                    "unexpected rule {:?} in accn name {:?}",
-                    pair.as_rule(),
-                    name
-                ),
-            };
-
-            accn = self.accn_mut(accn).child_entry(name).or_open().id()
+            if pair.as_rule() == Rule::contact {
+                self.parse_contact(pair);
+            }
+            accn = self.accn_mut(accn).child_entry(name).or_open().id();
         }
 
         self.accn_mut(accn)
