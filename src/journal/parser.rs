@@ -90,6 +90,7 @@ impl<B: BuildBook> CoinParser<B> {
             self.accn_store,
             self.currency_store,
             self.bookings,
+            self.global_tags,
         ))
     }
 

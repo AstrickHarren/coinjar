@@ -43,6 +43,7 @@ pub(crate) struct Journal {
     accn_store: AccnStore,
     currency_store: CurrencyStore,
     bookings: Vec<Booking>,
+    global_tags: Vec<Vec<String>>,
 }
 
 impl Posting {
@@ -97,11 +98,13 @@ impl Journal {
         accn_store: AccnStore,
         currency_store: CurrencyStore,
         bookings: Vec<Booking>,
+        global_tags: Vec<Vec<String>>,
     ) -> Self {
         Self {
             accn_store,
             currency_store,
             bookings,
+            global_tags,
         }
     }
 
@@ -119,6 +122,18 @@ impl Display for Journal {
             writeln!(f, "{:#}\n", self.accn_store)?;
             writeln!(f, "{}", "Bookings:".purple())?;
         }
+
+        for tag in &self.global_tags {
+            let tag_name = &tag[0];
+            let args = tag.iter().skip(1).join(",");
+            if args.is_empty() {
+                writeln!(f, "#[{}]", tag_name)?;
+            } else {
+                writeln!(f, "#[{}({})]", tag_name, args)?;
+            }
+        }
+
+        writeln!(f)?;
 
         if !f.alternate() {
             writeln!(f, "{}\n", self.currency_store)?;
@@ -183,6 +198,7 @@ pub(crate) mod test {
             accn_store,
             bookings: vec![lunch, dinner, breakfast],
             currency_store: example_currency_store(),
+            global_tags: Default::default(),
         };
 
         println!("{}", journal)
