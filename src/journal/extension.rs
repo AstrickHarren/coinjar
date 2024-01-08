@@ -1,11 +1,13 @@
 pub(crate) mod relative_date;
 pub(crate) mod split;
 
+use std::borrow::Borrow;
+
 use chrono::NaiveDate;
 use uuid::Uuid;
 
 use crate::{
-    accn::{Accn, AccnId, AccnStore, ContactId},
+    accn::{self, Accn, AccnId, AccnMut, AccnStore, ContactId},
     journal::{Booking, Posting},
     valuable::{Money, Valuable},
 };
@@ -32,6 +34,29 @@ pub(crate) trait BuildBook {
     }
 
     fn into_booking_with(self, accns: &mut AccnStore) -> Booking;
+
+    fn parse_accn<'a>(
+        &mut self,
+        accns: &'a mut AccnStore,
+        names: impl IntoIterator<Item = impl Borrow<str>>,
+    ) -> AccnMut<'a> {
+        let mut names = names.into_iter();
+        let mut accn = accns.root(names.next().unwrap().borrow()).unwrap().id();
+
+        for name in names {
+            let name: &str = name.borrow();
+            let name = name
+                .strip_prefix('@')
+                .inspect(|name| {
+                    accns.add_contact(name);
+                })
+                .unwrap_or(name)
+                .to_string();
+            accn = accns.accn_mut(accn).child_entry(name).or_open().id();
+        }
+
+        accns.accn_mut(accn)
+    }
 }
 
 pub(crate) struct NoExtension {

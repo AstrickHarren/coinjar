@@ -348,6 +348,13 @@ impl<'a> Accn<'a> {
     fn child(self, name: &str) -> Option<Accn<'a>> {
         self.children().find(move |a| a.name() == name)
     }
+
+    pub(crate) fn as_ref_mut<'b>(self, accns: &'b mut AccnStore) -> AccnMut<'b> {
+        AccnMut {
+            id: self.id,
+            accn_store: accns,
+        }
+    }
 }
 
 impl PartialEq for Accn<'_> {
