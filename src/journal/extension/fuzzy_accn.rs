@@ -12,6 +12,7 @@ use super::BuildBook;
 pub(crate) struct FuzzyAccn<B: BuildBook> {
     inner: B,
     enabled: bool,
+    recursive: bool,
 }
 
 impl<B: BuildBook> BuildBook for FuzzyAccn<B> {
@@ -19,6 +20,7 @@ impl<B: BuildBook> BuildBook for FuzzyAccn<B> {
         Self {
             inner: B::from_booking(booking),
             enabled: false,
+            recursive: false,
         }
     }
 
@@ -39,11 +41,11 @@ impl<B: BuildBook> BuildBook for FuzzyAccn<B> {
         &mut self,
         accns: &mut AccnStore,
         tag_name: &str,
-        args: impl Iterator<Item = impl AsRef<str>>,
+        mut args: impl Iterator<Item = impl AsRef<str>>,
     ) -> &mut Self {
         if tag_name == "fuzzy_accn" {
-            debug_assert!(args.count() == 0);
             self.enabled = true;
+            self.recursive = args.any(|arg| matches!(arg.as_ref(), "recursive" | "deep"));
         } else {
             self.inner.with_tag(accns, tag_name, args);
         }
@@ -56,7 +58,6 @@ impl<B: BuildBook> BuildBook for FuzzyAccn<B> {
         accns: &'a mut AccnStore,
         names: impl IntoIterator<Item = impl Borrow<str>>,
     ) -> AccnMut<'a> {
-        dbg!(self.enabled);
         if !self.enabled {
             return self.inner.parse_accn(accns, names);
         }
@@ -73,45 +74,55 @@ impl<B: BuildBook> BuildBook for FuzzyAccn<B> {
                     .id()
             })
             .unwrap_or_else(|iter| {
-                // TODO: remove collection here
-                let names = iter.map(|s| s.borrow().to_string()).collect_vec();
-                dbg!(&names);
-                let mut iter = names.clone().into_iter();
-
-                let root = iter.next().unwrap();
-                let mut accn = accns
-                    .roots()
-                    .filter(|accn| accn.name().contains(&root.to_lowercase()))
-                    .exactly_one()
-                    .unwrap_or_else(|_| panic!("root accn not found, got {}", root))
-                    .id();
-
-                for name in iter {
-                    name.strip_prefix('@').inspect(|name| {
-                        accns.add_contact(name);
-                    });
-
-                    let fuzzy = accns
-                        .accn_mut(accn)
-                        .as_ref()
-                        .children()
-                        .filter(|child| child.name().to_lowercase().contains(&name.to_lowercase()))
-                        .map(|child| child.id())
-                        .exactly_one()
-                        .map_err(|_| ());
-
-                    accn = fuzzy.unwrap_or_else(|_| {
-                        accns
-                            .accn_mut(accn)
-                            .child_entry(name.to_string())
-                            .or_open()
-                            .id()
-                    });
+                if self.recursive {
+                    deep_parse_accn(iter, accns)
+                } else {
+                    self.inner.parse_accn(accns, iter).id()
                 }
-
-                accn
             });
 
         accns.accn_mut(id)
     }
+}
+
+fn deep_parse_accn(
+    iter: impl Iterator<Item = impl Borrow<str>>,
+    accns: &mut AccnStore,
+) -> uuid::Uuid {
+    // TODO: remove collection here
+    let names = iter.map(|s| s.borrow().to_string()).collect_vec();
+    let mut iter = names.clone().into_iter();
+
+    let root = iter.next().unwrap();
+    let mut accn = accns
+        .roots()
+        .filter(|accn| accn.name().contains(&root.to_lowercase()))
+        .exactly_one()
+        .unwrap_or_else(|_| panic!("root accn not found, got {}", root))
+        .id();
+
+    for name in iter {
+        name.strip_prefix('@').inspect(|name| {
+            accns.add_contact(name);
+        });
+
+        let fuzzy = accns
+            .accn_mut(accn)
+            .as_ref()
+            .children()
+            .filter(|child| child.name().to_lowercase().contains(&name.to_lowercase()))
+            .map(|child| child.id())
+            .exactly_one()
+            .map_err(|_| ());
+
+        accn = fuzzy.unwrap_or_else(|_| {
+            accns
+                .accn_mut(accn)
+                .child_entry(name.to_string())
+                .or_open()
+                .id()
+        });
+    }
+
+    accn
 }
