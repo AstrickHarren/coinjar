@@ -29,6 +29,8 @@ struct CoinParser<B: BuildBook = NoExtension> {
     currency_store: CurrencyStore,
     bookings: Vec<Booking>,
     booking_builder: PhantomData<B>,
+
+    global_tags: Vec<Vec<String>>,
 }
 
 impl AccnStore {
@@ -66,6 +68,7 @@ impl<B: BuildBook> CoinParser<B> {
             currency_store: CurrencyStore::new(),
             bookings: Vec::new(),
             booking_builder: PhantomData,
+            global_tags: Vec::new(),
         }
     }
 
@@ -75,6 +78,7 @@ impl<B: BuildBook> CoinParser<B> {
 
         for pair in pairs {
             match pair.as_rule() {
+                Rule::tag => self.parse_global_tag(pair),
                 Rule::chapter => self.parse_chapter(pair)?,
                 Rule::currency => self.currency_store.parse_currency(pair),
                 Rule::EOI => (),
@@ -127,6 +131,13 @@ impl<B: BuildBook> CoinParser<B> {
         let mut booking = B::from_booking(Booking::new(date, desc, contact));
 
         // NOTE: tags must be parsed before postings
+        // global tags
+
+        for tag in &self.global_tags {
+            booking.with_tag(&mut self.accn_store, &tag[0], tag.into_iter().skip(1));
+        }
+
+        // local tags
         for tag in tags {
             self.parse_tag(tag, &mut booking);
         }
@@ -163,6 +174,17 @@ impl<B: BuildBook> CoinParser<B> {
         let args = pairs.map(|p| p.as_str());
         booking.with_tag(&mut self.accn_store, tag_name, args);
     }
+
+    fn parse_global_tag(&mut self, pair: Pair<'_, Rule>) {
+        let mut pairs = pair.into_inner();
+        let mut tag = Vec::new();
+        let tag_name = pairs.next().unwrap().as_str().to_string();
+        let args = pairs.map(|p| p.as_str().to_string());
+
+        tag.push(tag_name);
+        tag.extend(args);
+        self.global_tags.push(tag);
+    }
 }
 
 impl Journal {
@@ -172,6 +194,7 @@ impl Journal {
             currency_store: CurrencyStore::new(),
             bookings: Vec::new(),
             booking_builder: PhantomData,
+            global_tags: Vec::new(),
         };
         parser.parse_coinfile(file_path)
     }

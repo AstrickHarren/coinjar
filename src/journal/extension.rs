@@ -7,7 +7,7 @@ use chrono::NaiveDate;
 use uuid::Uuid;
 
 use crate::{
-    accn::{self, Accn, AccnId, AccnMut, AccnStore, ContactId},
+    accn::{Accn, AccnId, AccnMut, AccnStore, ContactId},
     journal::{Booking, Posting},
     valuable::{Money, Valuable},
 };
@@ -28,7 +28,7 @@ pub(crate) trait BuildBook {
         &mut self,
         accns: &mut AccnStore,
         tag_name: &str,
-        args: impl Iterator<Item = &'a str>,
+        args: impl Iterator<Item = impl AsRef<str>>,
     ) -> &mut Self {
         self
     }

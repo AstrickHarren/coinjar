@@ -40,15 +40,19 @@ impl<B: BuildBook> BuildBook for Split<B> {
         self
     }
 
-    fn with_tag<'a>(
+    fn with_tag(
         &mut self,
         accns: &mut AccnStore,
         tag_name: &str,
-        args: impl Iterator<Item = &'a str>,
+        args: impl Iterator<Item = impl AsRef<str>>,
     ) -> &mut Self {
         if tag_name.to_lowercase() == "split" {
             for arg in args {
-                match arg.split_once(' ').map(|(a, b)| (a.trim(), b.trim())) {
+                match arg
+                    .as_ref()
+                    .split_once(' ')
+                    .map(|(a, b)| (a.trim(), b.trim()))
+                {
                     Some(("by", name)) => {
                         let name = name.strip_prefix('@').unwrap();
                         let mut contact = accns.add_contact(name);
@@ -63,7 +67,7 @@ impl<B: BuildBook> BuildBook for Split<B> {
                         }
                     }
                     None => {
-                        let arg = arg.strip_prefix('@').unwrap();
+                        let arg = arg.as_ref().strip_prefix('@').unwrap();
                         let mut contact = accns.add_contact(arg);
                         contact.receivable_entry().or_open();
                         self.debtor.push(contact.id());

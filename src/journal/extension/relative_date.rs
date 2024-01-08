@@ -30,7 +30,7 @@ impl<B: BuildBook> BuildBook for RelativeDate<B> {
         &mut self,
         _accns: &mut AccnStore,
         tag_name: &str,
-        args: impl Iterator<Item = &'a str>,
+        args: impl Iterator<Item = impl AsRef<str>>,
     ) -> &mut Self {
         if tag_name == "date" {
             if self.diff.is_some() {
@@ -42,6 +42,7 @@ impl<B: BuildBook> BuildBook for RelativeDate<B> {
                 .exactly_one()
                 .unwrap_or_else(|_| panic!("expected exactly one argument for tag 'date'"));
             let diff = diff
+                .as_ref()
                 .parse::<i32>()
                 .unwrap_or_else(|e| panic!("expected integer argument for tag 'date', got: {}", e));
             self.diff = Some(diff);
