@@ -46,13 +46,9 @@ pub(crate) trait BuildBook {
 
         for name in names {
             let name: &str = name.borrow();
-            let name = name
-                .strip_prefix('@')
-                .inspect(|name| {
-                    accns.add_contact(name);
-                })
-                .unwrap_or(name)
-                .to_string();
+            name.strip_prefix('@').inspect(|name| {
+                accns.add_contact(name);
+            });
             accn = accns.accn_mut(accn).child_entry(name).or_open().id();
         }
 

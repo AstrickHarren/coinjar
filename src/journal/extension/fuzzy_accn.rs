@@ -87,12 +87,9 @@ impl<B: BuildBook> BuildBook for FuzzyAccn<B> {
                     .id();
 
                 for name in iter {
-                    let name = name
-                        .strip_prefix('@')
-                        .inspect(|name| {
-                            accns.add_contact(name);
-                        })
-                        .unwrap_or(&name);
+                    name.strip_prefix('@').inspect(|name| {
+                        accns.add_contact(name);
+                    });
 
                     let fuzzy = accns
                         .accn_mut(accn)
