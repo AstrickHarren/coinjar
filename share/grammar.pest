@@ -2,7 +2,7 @@ year  = { ASCII_DIGIT{4} }
 month = { ASCII_DIGIT{2} }
 day   = { ASCII_DIGIT{2} }
 
-word  = @{ ASCII_ALPHA ~ (ASCII_ALPHA | "'" | "." | "-")* }
+word  = @{ (ASCII_ALPHA | "&") ~ (ASCII_ALPHA | "'" | "." | "-" | "&" | ":")* }
 words = @{ word ~ (" " ~ word)* }
 
 natural_date = @{ "today" | "yesterday" }

@@ -9,6 +9,7 @@ pub(crate) enum AccnQuery {
     #[default]
     All,
     Name(String),
+    NameIgnoreCase(String),
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -49,6 +50,12 @@ impl AccnStore {
             },
             AccnQuery::All => AccnUnion {
                 accns: Box::new(self.accns()),
+            },
+            AccnQuery::NameIgnoreCase(name) => AccnUnion {
+                accns: Box::new(
+                    self.accns()
+                        .filter(move |a| a.name().to_lowercase().contains(&name.to_lowercase())),
+                ),
             },
         }
     }

@@ -67,7 +67,7 @@ impl<B: BuildBook> BuildBook for FuzzyAccn<B> {
             .exactly_one()
             .map(|name| {
                 accns
-                    .query(AccnQuery::Name(name.borrow().to_string()))
+                    .query(AccnQuery::NameIgnoreCase(name.borrow().to_string()))
                     .into_iter()
                     .exactly_one()
                     .unwrap_or_else(|_| panic!("accn not found: {}", name.borrow()))
