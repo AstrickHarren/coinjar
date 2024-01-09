@@ -15,6 +15,7 @@ pub(crate) struct FuzzyAccn<B: BuildBook> {
 
     recursive: bool,
     root: bool,
+    adds_accn: bool,
 }
 
 impl<B: BuildBook> BuildBook for FuzzyAccn<B> {
@@ -22,8 +23,10 @@ impl<B: BuildBook> BuildBook for FuzzyAccn<B> {
         Self {
             inner: B::from_booking(booking),
             enabled: false,
+
             recursive: false,
             root: false,
+            adds_accn: false,
         }
     }
 
@@ -51,7 +54,8 @@ impl<B: BuildBook> BuildBook for FuzzyAccn<B> {
             for arg in args {
                 match arg.as_ref() {
                     "recursive" | "deep" => self.recursive = true,
-                    "root" => self.root = true,
+                    "root" | "root_only" => self.root = true,
+                    "adds_accn" => self.adds_accn = true,
                     _ => panic!("unknown argument for tag 'fuzzy_accn': {}", arg.as_ref()),
                 }
             }
@@ -83,7 +87,8 @@ impl<B: BuildBook> BuildBook for FuzzyAccn<B> {
                     .id()
             })
             .unwrap_or_else(|mut iter| match (self.recursive, self.root) {
-                (true, _) => deep_parse_accn(iter, accns),
+                (true, _) => deep_parse_accn(iter, accns, self.adds_accn)
+                    .unwrap_or_else(|iter| self.inner.parse_accn(accns, iter).id()),
                 (false, true) => {
                     let root = fuzzy_root(accns, iter.next().unwrap().borrow())
                         .name()
@@ -101,15 +106,16 @@ impl<B: BuildBook> BuildBook for FuzzyAccn<B> {
 fn deep_parse_accn(
     iter: impl Iterator<Item = impl Borrow<str>>,
     accns: &mut AccnStore,
-) -> uuid::Uuid {
+    adds_accn: bool,
+) -> Result<uuid::Uuid, impl Iterator<Item: Borrow<str>>> {
     // TODO: remove collection here
     let names = iter.map(|s| s.borrow().to_string()).collect_vec();
     let mut iter = names.clone().into_iter();
 
     let root = iter.next().unwrap();
-    let mut accn = fuzzy_root(accns, &root).id();
+    let root = fuzzy_root(accns, &root).id();
 
-    for name in iter {
+    let accn = iter.try_fold(root, |accn, name| {
         name.strip_prefix('@').inspect(|name| {
             accns.add_contact(name);
         });
@@ -121,18 +127,20 @@ fn deep_parse_accn(
             .filter(|child| child.name().to_lowercase().contains(&name.to_lowercase()))
             .map(|child| child.id())
             .exactly_one()
-            .map_err(|_| ());
+            .ok();
 
-        accn = fuzzy.unwrap_or_else(|_| {
-            accns
-                .accn_mut(accn)
-                .child_entry(name.to_string())
-                .or_open()
-                .id()
-        });
-    }
+        fuzzy.or_else(|| {
+            adds_accn.then(|| {
+                accns
+                    .accn_mut(accn)
+                    .child_entry(name.to_string())
+                    .or_open()
+                    .id()
+            })
+        })
+    });
 
-    accn
+    accn.ok_or_else(|| names.into_iter().map(|s| s))
 }
 
 fn fuzzy_root<'a>(accns: &'a mut AccnStore, root: &str) -> Accn<'a> {
