@@ -217,8 +217,8 @@ impl DivAssign<i32> for Money {
     fn div_assign(&mut self, rhs: i32) {
         let sign = self.amount.signum();
         let amount = self.amount.abs();
-        let amount = amount / rhs;
         let minor = amount % rhs;
+        let amount = amount / rhs;
 
         // half even rounding
         if (minor > rhs / 2) || (minor == rhs / 2 && amount % 2 == 1 && rhs % 2 == 0) {
@@ -351,6 +351,7 @@ impl Display for Valuable {
 
 // TODO: cfg test
 pub(crate) mod test {
+
     use super::*;
 
     pub(crate) fn example_currency_store() -> CurrencyStore {
@@ -378,27 +379,44 @@ pub(crate) mod test {
     }
 
     #[test]
+    fn test_single_round() {
+        let amount = 30_26;
+        let rounded = Money::from_minor(amount, Currency::usd()) / 2;
+        assert_eq!(rounded.amount, 15_13);
+    }
+
+    #[test]
     #[rustfmt::skip]
     fn test_round_half_even() {
-        let amuonts = [20_01, 20_03, 20_05, 20_07, 20_09, 20_11, 20_13, 20_15, 20_17, 20_19,
-            -20_01, -20_03, -20_05, -20_07, -20_09, -20_11, -20_13, -20_15, -20_17, -20_19];
+        let positve_amounts = 20_01..=20_20;
+        let rounded_positve = rounded(positve_amounts.clone());
+        let rounded_negtive = rounded(positve_amounts.clone().map(|a| -a));
+        let half_positive = positve_amounts.map(|a| (a as f32)/2.0);
+        let expected_positive = half_positive.map(
+            |a| {
+                let integer_part = a.floor() as i32;
+                let decimal_part = a - integer_part as f32;
 
-        let rounded = amuonts
-            .iter()
+                if decimal_part > 0.5 || (decimal_part == 0.5 && integer_part % 2 == 1) {
+                    integer_part + 1
+                } else {
+                    integer_part
+                }
+            }
+        );
+        let expected_negative = expected_positive.clone().map(|a| -a);
+        assert_eq!(rounded_positve, expected_positive.collect::<Vec<_>>());
+        assert_eq!(rounded_negtive, expected_negative.collect::<Vec<_>>());
+    }
+
+    fn rounded(amounts: impl Iterator<Item = i32>) -> Vec<i32> {
+        amounts
             .map(|a| Money {
-                amount: *a,
+                amount: a,
                 currency: Currency::usd(),
             })
             .map(|m| m / 2)
             .map(|m| m.amount)
-            .collect::<Vec<_>>();
-
-        assert_eq!(
-            rounded,
-            vec![
-                10_00, 10_02, 10_02, 10_04, 10_04, 10_06, 10_06, 10_08, 10_08, 10_10,
-                -10_00, -10_02, -10_02, -10_04, -10_04, -10_06, -10_06, -10_08, -10_08, -10_10,
-            ]
-        )
+            .collect::<Vec<_>>()
     }
 }
