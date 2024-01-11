@@ -1,12 +1,19 @@
+mod money;
+
 use std::{
     fmt::{Display, Write},
     iter::Sum,
     ops::{Add, AddAssign, Div, DivAssign, Neg},
+    str::FromStr,
     sync::Arc,
 };
 
 use indenter::indented;
 use itertools::Itertools;
+use rust_decimal::{
+    prelude::{Signed, Zero},
+    Decimal, RoundingStrategy,
+};
 
 #[derive(Debug, Clone, Eq)]
 pub(crate) struct Currency {
@@ -17,7 +24,7 @@ pub(crate) struct Currency {
 
 #[derive(Debug, PartialEq, Clone)]
 pub(crate) struct Money {
-    amount: i32,
+    amount: Decimal,
     currency: Currency,
 }
 
@@ -33,23 +40,16 @@ pub(crate) struct CurrencyStore {
 
 impl Display for Money {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let positve = self
+            .amount
+            .abs()
+            .round_dp_with_strategy(2, RoundingStrategy::MidpointNearestEven);
+        let sign = if self.amount < 0.into() { "-" } else { "" };
         let symbol = self.currency.symbol.as_ref().map(|s| s.as_str());
-        let positve = self.amount.abs();
-        let sign = if self.amount < 0 { "-" } else { "" };
-
-        let major = positve / 100;
-        let minor = positve % 100;
 
         match symbol {
-            Some(symbol) => write!(f, "{}{}{}.{:02}", sign, symbol, major, minor),
-            None => write!(
-                f,
-                "{}{}.{:02} {}",
-                sign,
-                major,
-                minor,
-                self.currency.code.as_str()
-            ),
+            Some(symbol) => write!(f, "{}{}{}", sign, symbol, positve),
+            None => write!(f, "{}{} {}", sign, positve, self.currency.code.as_str()),
         }
     }
 }
@@ -132,12 +132,15 @@ impl Display for Currency {
 
 impl Money {
     pub(crate) fn from_minor(amount: i32, currency: Currency) -> Self {
-        Self { amount, currency }
+        Self {
+            amount: amount.into(),
+            currency,
+        }
     }
 
     pub(crate) fn from_major(amount: i32, currency: Currency) -> Self {
         Self {
-            amount: amount * 100,
+            amount: Decimal::from(amount),
             currency,
         }
     }
@@ -169,12 +172,16 @@ impl Money {
             }
         };
 
-        let (major, minor) = amount.split_once('.').unwrap_or((amount, "00"));
-        let major = major.parse::<i32>().ok()?;
-        let minor = minor.parse::<i32>().ok()?;
-        let amount = major * 100 + minor;
-        let amount = if is_negative { -amount } else { amount };
+        let mut amount = Decimal::from_str(amount).ok()?;
+        amount = if is_negative { -amount } else { amount };
         Some(Self { amount, currency })
+    }
+
+    pub(crate) fn round(mut self) -> Money {
+        self.amount = self
+            .amount
+            .round_dp_with_strategy(2, RoundingStrategy::MidpointNearestEven);
+        self
     }
 }
 
@@ -206,26 +213,15 @@ impl AddAssign<Money> for Money {
 impl Div<i32> for Money {
     type Output = Money;
 
-    fn div(self, rhs: i32) -> Self::Output {
-        let mut money = self.clone();
-        money /= rhs;
-        money
+    fn div(mut self, rhs: i32) -> Self::Output {
+        self /= rhs;
+        self
     }
 }
 
 impl DivAssign<i32> for Money {
     fn div_assign(&mut self, rhs: i32) {
-        let sign = self.amount.signum();
-        let amount = self.amount.abs();
-        let minor = amount % rhs;
-        let amount = amount / rhs;
-
-        // half even rounding
-        if (minor > rhs / 2) || (minor == rhs / 2 && amount % 2 == 1 && rhs % 2 == 0) {
-            self.amount = (amount + 1) * sign;
-        } else {
-            self.amount = amount * sign;
-        }
+        self.amount /= Decimal::from(rhs)
     }
 }
 
@@ -287,7 +283,7 @@ impl Valuable {
     }
 
     pub(crate) fn simplify(&mut self) {
-        self.moneys.retain(|m| m.amount != 0);
+        self.moneys.retain(|m| !m.amount.is_zero());
     }
 
     pub(crate) fn is_zero(&self) -> bool {
@@ -382,7 +378,7 @@ pub(crate) mod test {
     fn test_single_round() {
         let amount = 30_26;
         let rounded = Money::from_minor(amount, Currency::usd()) / 2;
-        assert_eq!(rounded.amount, 15_13);
+        assert_eq!(rounded.amount, 15_13.into());
     }
 
     #[test]
@@ -405,18 +401,17 @@ pub(crate) mod test {
             }
         );
         let expected_negative = expected_positive.clone().map(|a| -a);
-        assert_eq!(rounded_positve, expected_positive.collect::<Vec<_>>());
-        assert_eq!(rounded_negtive, expected_negative.collect::<Vec<_>>());
+        assert_eq!(rounded_positve, expected_positive.into_iter().map(Into::into).collect::<Vec<_>>());
+        assert_eq!(rounded_negtive, expected_negative.into_iter().map(Into::into).collect::<Vec<_>>());
     }
 
-    fn rounded(amounts: impl Iterator<Item = i32>) -> Vec<i32> {
+    fn rounded(amounts: impl Iterator<Item = i32>) -> Vec<Decimal> {
         amounts
             .map(|a| Money {
-                amount: a,
+                amount: a.into(),
                 currency: Currency::usd(),
             })
-            .map(|m| m / 2)
-            .map(|m| m.amount)
+            .map(|m| (m / 100 / 2).round().amount * Decimal::from(100))
             .collect::<Vec<_>>()
     }
 }
