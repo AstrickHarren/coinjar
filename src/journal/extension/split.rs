@@ -83,23 +83,29 @@ impl<B: BuildBook> BuildBook for Split<B> {
     }
 
     fn into_booking_with(mut self, accns: &mut AccnStore) -> Booking {
-        let inbalances = self.split_inbalance();
-        let moneys = inbalances.moneys().cloned();
         match self.payer {
             // I am the payer, every debtor is a receivable
             None => {
+                let splits = self.split().collect_vec();
                 self.debtor
                     .iter()
-                    .cartesian_product(moneys)
+                    .zip_eq(&splits)
+                    .flat_map(|(id, val)| val.moneys().map(move |m| (id, m)))
                     .for_each(|(id, money)| {
-                        self.inner
-                            .with_posting(accns.contact(*id).receivable().unwrap(), Some(money));
+                        self.inner.with_posting(
+                            accns.contact(*id).receivable().unwrap(),
+                            Some(money.clone()),
+                        );
                     });
             }
             // I am not the payer, only payer is a payable
             Some(payer) => {
-                self.inner
-                    .with_moneys(accns.contact(payer).payable().unwrap(), moneys.map(|m| -m));
+                let moneys = self.split_once();
+                let moneys = moneys.moneys();
+                self.inner.with_moneys(
+                    accns.contact(payer).payable().unwrap(),
+                    moneys.map(|m| -m.clone()),
+                );
             }
         }
 
@@ -121,7 +127,7 @@ impl<B: BuildBook> BuildBook for Split<B> {
 }
 
 impl<B: BuildBook> Split<B> {
-    fn split_inbalance(&mut self) -> Valuable {
+    fn split_once(&mut self) -> Valuable {
         let n_shares = self.n_shares();
         self.expenses
             .iter_mut()
@@ -130,6 +136,23 @@ impl<B: BuildBook> Split<B> {
                 p.money.clone().round()
             })
             .sum()
+    }
+
+    fn split(&mut self) -> impl Iterator<Item = Valuable> + '_ {
+        let n_shares = self.n_shares();
+        let groups = &self
+            .expenses
+            .iter_mut()
+            .flat_map(move |p| {
+                let mut iter = p.money.clone().split_rounded(n_shares);
+                p.money = iter.next().unwrap();
+                iter.enumerate()
+            })
+            .group_by(|(i, _)| *i);
+        let vals = groups
+            .into_iter()
+            .map(|(_, g)| g.map(|(_, m)| m).sum::<Valuable>());
+        vals.collect_vec().into_iter()
     }
 
     fn n_shares(&self) -> usize {

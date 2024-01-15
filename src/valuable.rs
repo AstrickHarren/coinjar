@@ -1,5 +1,3 @@
-mod money;
-
 use std::{
     fmt::{Display, Write},
     iter::Sum,
@@ -11,9 +9,10 @@ use std::{
 use indenter::indented;
 use itertools::Itertools;
 use rust_decimal::{
-    prelude::{Signed, Zero},
+    prelude::{Signed, ToPrimitive},
     Decimal, RoundingStrategy,
 };
+use rust_decimal_macros::dec;
 
 #[derive(Debug, Clone, Eq)]
 pub(crate) struct Currency {
@@ -48,8 +47,8 @@ impl Display for Money {
         let symbol = self.currency.symbol.as_ref().map(|s| s.as_str());
 
         match symbol {
-            Some(symbol) => write!(f, "{}{}{}", sign, symbol, positve),
-            None => write!(f, "{}{} {}", sign, positve, self.currency.code.as_str()),
+            Some(symbol) => write!(f, "{}{}{:.02}", sign, symbol, positve),
+            None => write!(f, "{}{:.02} {}", sign, positve, self.currency.code.as_str()),
         }
     }
 }
@@ -182,6 +181,27 @@ impl Money {
             .amount
             .round_dp_with_strategy(2, RoundingStrategy::MidpointNearestEven);
         self
+    }
+
+    pub(crate) fn split_rounded(self, n: usize) -> impl Iterator<Item = Money> {
+        let share = (self.clone() / n as i32).round().amount;
+        let remainder = self.amount - share * Decimal::from(n);
+        let sign = remainder.signum();
+        let n_compensations = (remainder.abs() / dec!(0.01)).round().to_usize().unwrap();
+        debug_assert!(n_compensations <= n);
+
+        std::iter::repeat(share)
+            .take(n)
+            .enumerate()
+            .map(move |(i, mut share)| {
+                if i < n_compensations {
+                    share += sign * dec!(0.01);
+                }
+                Money {
+                    amount: share,
+                    currency: self.currency.clone(),
+                }
+            })
     }
 }
 
@@ -413,5 +433,17 @@ pub(crate) mod test {
             })
             .map(|m| (m / 100 / 2).round().amount * Decimal::from(100))
             .collect::<Vec<_>>()
+    }
+
+    #[test]
+    fn test_split() {
+        let money = Money::from_minor(100, Currency::usd());
+        let split = money
+            .clone()
+            .split_rounded(7)
+            .map(|m| m.amount)
+            .collect::<Vec<_>>();
+        dbg!(&split);
+        assert_eq!(money.amount, split.iter().sum::<Decimal>());
     }
 }

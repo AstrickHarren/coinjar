@@ -17,3 +17,4 @@ tabled = "0"
 colored = "2"
 clap = { version = "4.4.13", features = ["derive"] }
 rust_decimal = "1.33.1"
+rust_decimal_macros = "1.33.1"

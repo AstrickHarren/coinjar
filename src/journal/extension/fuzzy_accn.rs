@@ -119,7 +119,6 @@ fn deep_parse_accn(
         name.strip_prefix('@').inspect(|name| {
             accns.add_contact(name);
         });
-
         let fuzzy = accns
             .accn_mut(accn)
             .as_ref()

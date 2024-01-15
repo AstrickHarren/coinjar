@@ -194,7 +194,7 @@ impl<B: BuildBook> CoinParser<B> {
     }
 }
 
-fn parse_tag<'a>(pair: Pair<'a, Rule>) -> (String, impl Iterator<Item: AsRef<str>> + 'a) {
+fn parse_tag<'a>(pair: Pair<'a, Rule>) -> (String, impl Iterator<Item = impl AsRef<str>> + 'a) {
     let mut pairs = pair.into_inner();
     let tag_name = pairs.next().unwrap().as_str().to_string();
     let args = pairs.map(|p| p.as_str().to_string());
