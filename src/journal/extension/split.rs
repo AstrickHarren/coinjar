@@ -132,8 +132,8 @@ impl<B: BuildBook> Split<B> {
         self.expenses
             .iter_mut()
             .map(|p| {
-                p.money /= n_shares as i32;
-                p.money.clone().round()
+                p.money = (p.money.clone() / n_shares as i32).round();
+                p.money.clone()
             })
             .sum()
     }

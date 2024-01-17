@@ -21,7 +21,7 @@ use super::{
     valuable::Money,
 };
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub(super) struct Posting {
     accn: AccnId,
     money: Money,
@@ -29,7 +29,7 @@ pub(super) struct Posting {
 
 type BookingId = Uuid;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub(crate) struct Booking {
     id: BookingId,
     date: NaiveDate,

@@ -159,8 +159,11 @@ impl<B: BuildBook> CoinParser<B> {
         let booking = booking.into_booking_with(&mut self.accn_store);
         booking
             .is_balanced()
-            .then_some(booking)
-            .ok_or_else(|| pest_custom_err(span, "booking not balanced").to_string())
+            .then_some(booking.clone())
+            .ok_or_else(|| {
+                let msg = format!("booking not balanced: {:?}", booking);
+                pest_custom_err(span, msg).to_string()
+            })
     }
 
     fn parse_posting(&mut self, pair: Pair<'_, Rule>, booking: &mut B) -> Result<(), String> {
