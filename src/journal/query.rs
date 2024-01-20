@@ -21,6 +21,7 @@ use super::Booking;
 struct PostingQuery<'a> {
     date: NaiveDate,
     desc: &'a str,
+    payee: &'a str,
     posting: &'a Posting,
     booking: &'a Booking,
 }
@@ -29,6 +30,7 @@ struct PostingQuery<'a> {
 pub(crate) struct BalanceQuery<'a> {
     date: NaiveDate,
     desc: &'a str,
+    payee: &'a str,
     change: Valuable,
     balance: Valuable,
 }
@@ -74,10 +76,11 @@ impl Query {
 
 impl Journal {
     fn postings(&self) -> impl Iterator<Item = PostingQuery<'_>> {
-        self.bookings.iter().flat_map(|b| {
+        self.bookings.iter().flat_map(move |b| {
             b.postings.iter().map(move |p| PostingQuery {
                 date: b.date,
                 desc: &b.desc,
+                payee: self.accn_store.contact(b.payee).name(),
                 posting: p,
                 booking: b,
             })
@@ -193,6 +196,7 @@ impl<'a, 'b> PostingQuerys<'a, 'b> {
                 Some(BalanceQuery {
                     date,
                     desc: "",
+                    payee: "",
                     change,
                     balance: balance.clone(),
                 })
@@ -205,11 +209,16 @@ impl<'a, 'b> PostingQuerys<'a, 'b> {
             .group_by(|p| p.booking)
             .into_iter()
             .scan(Valuable::default(), |balance, (b, p)| {
-                let change: Valuable = p.map(|p| p.posting.money.clone()).sum();
+                let (change, payee) = p.fold((Valuable::default(), ""), |(mut change, _), p| {
+                    change.add_money(p.posting.money.clone());
+                    (change, p.payee)
+                });
+
                 *balance += change.clone();
                 Some(BalanceQuery {
                     date: b.date,
                     desc: &b.desc,
+                    payee,
                     change,
                     balance: balance.clone(),
                 })

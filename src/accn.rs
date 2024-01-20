@@ -454,7 +454,7 @@ impl<'a> AccnEntry<'a> {
 }
 
 impl<'a> Contact<'a> {
-    pub(crate) fn name(&self) -> &str {
+    pub(crate) fn name(&self) -> &'a str {
         &self.accn_store.contacts[&self.id].name
     }
 
