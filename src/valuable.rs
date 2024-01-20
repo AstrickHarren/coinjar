@@ -1,3 +1,5 @@
+pub(crate) mod conversion;
+
 use std::{
     fmt::{Display, Write},
     iter::Sum,
@@ -107,6 +109,10 @@ impl Currency {
             symbol: Some(Arc::new("¥".to_string())),
             code: Arc::new("JPY".to_string()),
         }
+    }
+
+    pub(crate) fn code(&self) -> &str {
+        self.code.as_str()
     }
 }
 
@@ -342,6 +348,15 @@ impl AddAssign for Valuable {
         for money in rhs.moneys {
             self.add_money(money);
         }
+    }
+}
+
+impl Add<Money> for Valuable {
+    type Output = Valuable;
+
+    fn add(mut self, rhs: Money) -> Self::Output {
+        self.add_money(rhs);
+        self
     }
 }
 
