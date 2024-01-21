@@ -1,6 +1,8 @@
 #![allow(dead_code)]
 #![feature(associated_type_bounds)]
 
+use core::panic;
+
 use clap::{Parser, Subcommand};
 use colored::Colorize;
 use journal::{
@@ -8,10 +10,14 @@ use journal::{
     Journal,
 };
 use tabled::{settings::Style, Table};
+use valuable::Currency;
 
-use crate::journal::{
-    extension::{fuzzy_accn::FuzzyAccn, relative_date::RelativeDate},
-    query::Query,
+use crate::{
+    journal::{
+        extension::{fuzzy_accn::FuzzyAccn, relative_date::RelativeDate},
+        query::Query,
+    },
+    valuable::conversion::ExchangeBook,
 };
 
 mod accn;
@@ -25,6 +31,8 @@ mod valuable;
 struct Args {
     #[clap(long, short, default_value = "journal.coin")]
     file_path: String,
+    #[clap(long, short)]
+    convert_to: Option<String>,
     #[clap(subcommand)]
     command: Command,
 }
@@ -56,7 +64,7 @@ enum Command {
 
 fn main() {
     type Extension = allow_extensions!(Split, RelativeDate, FuzzyAccn);
-    let args = Args::parse();
+    let args: Args = Args::parse();
     let journal = Journal::from_file::<Extension>(&args.file_path).unwrap_or_else(|e| {
         eprintln!("Error parsing journal: {}", e);
         std::process::exit(1);
@@ -70,7 +78,15 @@ fn main() {
         }
         Command::Format => journal.to_file(&args.file_path),
         Command::IncomeStatement => income_statement(&journal),
-        Command::Contact { name, all } => contact_details(&journal, &name, all),
+        Command::Contact { name, all } => {
+            let currency = args.convert_to.map(|c| {
+                journal
+                    .currencies()
+                    .currency_by_code_ignore_case(&c)
+                    .unwrap_or_else(|| panic!("No currency found with code: {}", c))
+            });
+            contact_details(&journal, &name, all, currency)
+        }
     }
 }
 
@@ -87,24 +103,29 @@ fn income_statement(journal: &Journal) {
     )
 }
 
-fn contact_details(journal: &Journal, name: &str, show_all: bool) {
+fn contact_details(journal: &Journal, name: &str, show_all: bool, convert_to: Option<&Currency>) {
     let contact = journal.accns().find_contact(name).unwrap_or_else(|| {
         eprintln!("No contact found with name: {}", name);
         std::process::exit(1);
     });
 
-    let query = if show_all {
-        journal.query_posting(Query::accns(contact.accns()))
-    } else {
-        journal.query_posting(Query::accns(
+    let query = match show_all {
+        true => journal.query_posting(Query::accns(contact.accns())),
+        false => journal.query_posting(Query::accns(
             contact.payable().into_iter().chain(contact.receivable()),
-        ))
+        )),
+    };
+
+    let book = ExchangeBook::default();
+    let query = match convert_to {
+        Some(cur) => query.balances().converted(cur, &book),
+        None => query.balances(),
     };
 
     println!(
         "{} {}\n{}",
         "Contact".purple().bold(),
         name.blue(),
-        Table::new(query.balances()).with(Style::modern()),
+        Table::new(query).with(Style::modern()),
     )
 }

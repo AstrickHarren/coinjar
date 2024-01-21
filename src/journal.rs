@@ -111,6 +111,10 @@ impl Journal {
     pub(crate) fn accns(&self) -> &AccnStore {
         &self.accn_store
     }
+
+    pub(crate) fn currencies(&self) -> &CurrencyStore {
+        &self.currency_store
+    }
 }
 
 impl Display for Journal {

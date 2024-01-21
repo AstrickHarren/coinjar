@@ -1,6 +1,7 @@
 use std::{cell::RefCell, collections::HashMap};
 
 use chrono::NaiveDate;
+use clap::error::Result;
 use rust_decimal::{prelude::FromPrimitive, Decimal};
 use serde::Deserialize;
 
@@ -30,11 +31,12 @@ impl RateResponse {
 }
 
 impl Rate {
-    fn get_for_pair(from: &str, to: &str) -> Self {
+    fn get_for_pair(from: &str, to: &str, date: Option<NaiveDate>) -> Result<Self, reqwest::Error> {
         let ver = 1;
         let api = "https://cdn.jsdelivr.net/gh/fawazahmed0/currency-api";
-        let url = format!("{}@{}/latest/currencies/{}/{}.json", api, ver, from, to);
-        reqwest::blocking::get(&url).unwrap().json().unwrap()
+        let date = date.map(|d| d.to_string()).unwrap_or("latest".to_string());
+        let url = format!("{}@{}/{}/currencies/{}/{}.json", api, ver, date, from, to);
+        reqwest::blocking::get(&url)?.json()
     }
 }
 
@@ -46,15 +48,20 @@ struct Exchange {
 }
 
 #[derive(Debug, Default)]
-struct ExchangeBook {
+pub(crate) struct ExchangeBook {
     rates: RefCell<HashMap<Exchange, f32>>,
 }
 
 impl ExchangeBook {
-    fn update_cur_for_pair(&self, from: &Currency, to: &Currency) {
+    fn update_cur_for_pair(
+        &self,
+        from: &Currency,
+        to: &Currency,
+        date: Option<NaiveDate>,
+    ) -> Result<(), reqwest::Error> {
         let from = from.code().to_lowercase();
         let to = to.code().to_lowercase();
-        let res = Rate::get_for_pair(&from, &to);
+        let res = Rate::get_for_pair(&from, &to, date)?;
 
         self.rates.borrow_mut().insert(
             Exchange {
@@ -64,6 +71,8 @@ impl ExchangeBook {
             },
             res.rate[&to],
         );
+
+        Ok(())
     }
 
     fn get(&self, from: &Currency, to: &Currency, date: NaiveDate) -> Option<f32> {
@@ -72,7 +81,7 @@ impl ExchangeBook {
             to: to.code().to_lowercase(),
             date,
         };
-        self.update_cur_for_pair(from, to);
+        self.update_cur_for_pair(from, to, Some(date)).ok()?;
         self.rates.borrow().get(&exchange).copied()
     }
 }
@@ -91,10 +100,17 @@ impl Money {
 }
 
 impl Valuable {
-    fn convert_to(&self, to: &Currency, date: NaiveDate, book: &ExchangeBook) -> Option<Self> {
-        self.moneys()
+    pub(crate) fn convert_to(
+        &self,
+        to: &Currency,
+        date: NaiveDate,
+        book: &ExchangeBook,
+    ) -> Option<Self> {
+        let ret = self
+            .moneys()
             .map(|money| money.convert_to(to, date, book))
-            .try_fold(Valuable::default(), |acc, money| Some(acc + money?))
+            .try_fold(Valuable::default(), |acc, money| Some(acc + money?));
+        ret
     }
 }
 
@@ -109,7 +125,7 @@ mod test {
     #[test]
     fn test_get_for_cur() {
         RateResponse::get_for_cur("eur");
-        Rate::get_for_pair("eur", "usd");
+        Rate::get_for_pair("eur", "usd", None).unwrap();
     }
 
     #[test]
@@ -120,7 +136,7 @@ mod test {
         let today = Local::now().naive_local().date();
         let yesterday = today.pred_opt().unwrap();
 
-        book.update_cur_for_pair(eur, usd);
+        book.update_cur_for_pair(eur, usd, Some(today)).unwrap();
         dbg!(book.get(eur, usd, yesterday));
     }
 

@@ -268,6 +268,12 @@ impl CurrencyStore {
             .find(|c| c.symbol.as_ref().map(|s| s.as_str()) == Some(symbol))
     }
 
+    pub(crate) fn currency_by_code_ignore_case(&self, symbol: &str) -> Option<&Currency> {
+        self.currencies
+            .iter()
+            .find(|c| c.code.as_ref().to_lowercase() == symbol.to_lowercase())
+    }
+
     pub(crate) fn add_currency(
         &mut self,
         desc: Option<impl ToString>,

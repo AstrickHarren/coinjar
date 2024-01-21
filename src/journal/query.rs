@@ -6,13 +6,14 @@ use std::{
 
 use chrono::NaiveDate;
 
+use colored::Colorize;
 use itertools::Itertools;
 use tabled::Tabled;
 
 use crate::{
     accn::{AccnId, Contact},
     journal::{Journal, Posting},
-    valuable::Valuable,
+    valuable::{conversion::ExchangeBook, Currency, Valuable},
 };
 
 use super::Booking;
@@ -39,6 +40,10 @@ pub(crate) struct PostingQuerys<'a, 'b> {
     postings: Box<dyn Iterator<Item = PostingQuery<'a>> + 'b>,
     since: Option<NaiveDate>,
     until: Option<NaiveDate>,
+}
+
+pub(crate) struct BalanceQuerys<'a, 'b> {
+    balances: Box<dyn Iterator<Item = BalanceQuery<'a>> + 'b>,
 }
 
 #[derive(Clone, Debug, PartialEq, Default)]
@@ -203,8 +208,9 @@ impl<'a, 'b> PostingQuerys<'a, 'b> {
             })
     }
 
-    pub(crate) fn balances(self) -> impl Iterator<Item = BalanceQuery<'a>> {
-        self.postings
+    pub(crate) fn balances(self) -> BalanceQuerys<'a, 'a> {
+        let iter = self
+            .postings
             .sorted_by_key(|p| p.date)
             .group_by(|p| p.booking)
             .into_iter()
@@ -224,7 +230,11 @@ impl<'a, 'b> PostingQuerys<'a, 'b> {
                 })
             })
             .collect_vec() // TODO: remove this
-            .into_iter()
+            .into_iter();
+
+        BalanceQuerys {
+            balances: Box::new(iter),
+        }
     }
 
     fn total(self) -> Valuable {
@@ -243,6 +253,50 @@ impl<'a, 'b> PostingQuerys<'a, 'b> {
             until: Some(date),
             ..self
         }
+    }
+}
+
+impl<'a, 'b> BalanceQuerys<'a, 'b> {
+    pub(crate) fn converted(
+        self,
+        currency: &'b Currency,
+        book: &'b ExchangeBook,
+    ) -> BalanceQuerys<'a, 'b>
+    where
+        'a: 'b,
+    {
+        let iter = self.balances.map(move |mut b| {
+            b.change = b
+                .change
+                .convert_to(currency, b.date, book)
+                .unwrap_or(b.change);
+            b.balance = b
+                .balance
+                .convert_to(currency, b.date, book)
+                .unwrap_or_else(|| {
+                    println!(
+                        "{}: No exchange rate into {} on date {} for\n    {}",
+                        "Warning".yellow().bold(),
+                        currency.code().cyan(),
+                        b.date.to_string().purple(),
+                        b.balance.clone().into_moneys().format("\n    "),
+                    );
+                    b.balance
+                });
+            b
+        });
+
+        BalanceQuerys {
+            balances: Box::new(iter),
+        }
+    }
+}
+
+impl<'a, 'b> IntoIterator for BalanceQuerys<'a, 'b> {
+    type Item = BalanceQuery<'a>;
+    type IntoIter = Box<dyn Iterator<Item = BalanceQuery<'a>> + 'b>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.balances
     }
 }
 
