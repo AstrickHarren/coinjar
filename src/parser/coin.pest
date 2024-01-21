@@ -19,13 +19,15 @@ chapter = { date ~ booking? ~ (LINE_BREAK+ ~ booking)* }
 grammar = _{ SOI ~ (LINE_BREAK* ~ chapter)* ~ LINE_BREAK* ~ EOI }
 
 // ------- MONEY -------
-symbol = @{ ANY }
-number = _{ (ASCII_DIGIT)+ ~ ("." ~ (ASCII_DIGIT)+)? }
-neg = _{ "-" }
-code = _{ ident }
+symbol = @{ !WHITESPACE ~ !ASCII_DIGIT ~ !neg ~ ANY }
+number = @{ (ASCII_DIGIT)+ ~ ("." ~ (ASCII_DIGIT)+)? }
+neg = @{ "-" }
+code = @{ ident }
 
-money_var_1 = { symbol ~ neg? ~ number } // $-10.00
-money_var_2 = { neg? ~ symbol ~ number } // -$10.00
-money_var_3 = { neg? ~ number ~ symbol } // -10.00£
-money_var_4 = { neg? ~ number ~ WHITESPACE* ~ code }   // -10.00 GBP
+money_var_1 = ${ symbol ~ neg? ~ number } // $-10.00
+money_var_2 = ${ neg? ~ symbol ~ number } // -$10.00
+money_var_3 = ${ neg? ~ number ~ symbol } // -10.00£
+money_var_4 = ${ neg? ~ number ~ WHITESPACE+ ~ code }   // -10.00 GBP
 money = _{ money_var_1 | money_var_2 | money_var_3 | money_var_4 }
+
+money_test = _{ SOI ~ money ~ !ANY }
