@@ -11,7 +11,14 @@ pub(crate) struct AccnEntry<'a> {
 
 impl Display for AccnEntry<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.ancestors().format(":").fmt(f)
+        self.ancestors()
+            .collect_vec()
+            .into_iter()
+            .rev()
+            .skip(1) // skip root
+            .map(|accn| accn.name())
+            .join(":")
+            .fmt(f)
     }
 }
 
@@ -130,5 +137,19 @@ mod test {
         };
 
         assert_eq!(checking.unwrap().ancestors().count(), 4);
+    }
+
+    #[test]
+    fn test_display() {
+        let example_tree = example_tree();
+        let checking: Option<_> = try {
+            example_tree
+                .root()
+                .child("assets")?
+                .child("bank")?
+                .child("checking")?
+        };
+
+        assert_eq!(checking.unwrap().to_string(), "assets:bank:checking");
     }
 }

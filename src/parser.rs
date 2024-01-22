@@ -101,7 +101,7 @@ mod test {
         for a in accn {
             let pairs = IdentParser::parse(Rule::accn, a).unwrap_or_else(|e| panic!("{}", e));
             let accn = parser.parse_accn(pairs);
-            dbg!(&parser.accn_tree);
+            assert_eq!(accn.to_string(), a);
         }
     }
 
