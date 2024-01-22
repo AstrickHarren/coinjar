@@ -1,13 +1,16 @@
+pub mod entry;
+
 use std::collections::HashMap;
 
 use anyhow::{anyhow, Result};
 use chrono::NaiveDate;
+
 use rust_decimal::prelude::Zero;
 use uuid::Uuid;
 
 use crate::{
-    accn::Accn,
-    valuable::{Money, Valuable},
+    accn::{Accn, AccnTree},
+    valuable::{CurrencyStore, Money, Valuable},
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -21,6 +24,7 @@ impl Posting {
     }
 }
 
+#[derive(Debug)]
 struct PostingData {
     accn: Accn,
     money: Money,
@@ -28,17 +32,18 @@ struct PostingData {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-struct Txn {
+pub(crate) struct Txn {
     id: Uuid,
 }
 
+#[derive(Debug)]
 struct TxnData {
     date: NaiveDate,
     description: String,
     postings: Vec<Posting>,
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub(crate) struct TxnStore {
     txns: HashMap<Txn, TxnData>,
     postings: HashMap<Posting, PostingData>,
@@ -98,7 +103,7 @@ impl TxnBuilder {
                     self.with_strict_posting(
                         self.inferred_posting
                             .ok_or_else(|| anyhow!("transcation not balanced"))?,
-                        money,
+                        -money,
                     );
                 }
             }
@@ -108,8 +113,10 @@ impl TxnBuilder {
         Ok(())
     }
 
-    pub(crate) fn build(mut self, txn_store: &mut TxnStore) -> Result<()> {
+    pub(crate) fn build(mut self, txn_store: &mut TxnStore) -> Result<Txn> {
         self.try_infer_inbalence()?;
+
+        dbg!(&self.postings);
 
         let (posting_id, posting): (Vec<_>, Vec<_>) = self
             .postings
@@ -128,6 +135,23 @@ impl TxnBuilder {
             .postings
             .extend(posting_id.into_iter().zip(posting));
 
-        Ok(())
+        Ok(self.txn)
+    }
+}
+
+#[derive(Debug)]
+pub(crate) struct Journal {
+    accns: AccnTree,
+    txns: TxnStore,
+    currencies: CurrencyStore,
+}
+
+impl Journal {
+    pub(crate) fn new(accns: AccnTree, txns: TxnStore, currencies: CurrencyStore) -> Self {
+        Self {
+            accns,
+            txns,
+            currencies,
+        }
     }
 }

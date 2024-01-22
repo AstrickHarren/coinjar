@@ -1,7 +1,7 @@
 use std::{
     collections::HashMap,
     iter::Sum,
-    ops::{Add, AddAssign},
+    ops::{Add, AddAssign, Neg},
 };
 
 use anyhow::{anyhow, Result};
@@ -95,6 +95,16 @@ impl Money {
         Self {
             amount: Decimal::zero(),
             currency,
+        }
+    }
+}
+
+impl Neg for Money {
+    type Output = Self;
+    fn neg(self) -> Self::Output {
+        Self {
+            amount: -self.amount,
+            currency: self.currency,
         }
     }
 }

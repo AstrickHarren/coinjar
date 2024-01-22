@@ -9,8 +9,8 @@ month =  { ASCII_DIGIT{2} }
 day   =  { ASCII_DIGIT{2} }
 date  = _{ year ~ "-" ~ month ~ "-" ~ day }
 
-ident  = @{ (ASCII_ALPHA) ~ (ASCII_ALPHANUMERIC)* }
-accn   = _{ ident ~ (":" ~ ident)* }
+ident  = @{ (ASCII_ALPHA) ~ (ASCII_ALPHANUMERIC | "-" | "@" | "_")* }
+accn   = { ident ~ (":" ~ ident)* }
 
 posting = { accn ~ money? }
 booking_desc = { !date ~ REST_OF_LINE }
@@ -23,7 +23,7 @@ grammar = _{ SOI ~ (LINE_BREAK* ~ chapter)* ~ LINE_BREAK* ~ EOF }
 symbol = @{ !WHITESPACE ~ !ASCII_DIGIT ~ !neg ~ ANY }
 number = @{ (ASCII_DIGIT)+ ~ ("." ~ (ASCII_DIGIT)+)? }
 neg = @{ "-" }
-code = @{ ident }
+code = @{ ASCII_ALPHA+ }
 
 money_var_1 = ${ symbol ~ neg? ~ number } // $-10.00
 money_var_2 = ${ neg? ~ symbol ~ number } // -$10.00

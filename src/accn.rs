@@ -21,7 +21,7 @@ impl Accn {
         tree.accn_mut(self)
     }
 
-    fn into_accn(self, tree: &AccnTree) -> AccnEntry {
+    pub(crate) fn into_accn(self, tree: &AccnTree) -> AccnEntry {
         tree.accn(self)
     }
 }
