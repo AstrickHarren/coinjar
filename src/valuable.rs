@@ -38,7 +38,7 @@ impl CurrencyStore {
     }
 
     fn insert(&mut self, code: String, symbol: String, symbol_first: bool) {
-        if let Some(_) = self.get_by_code(&code) {
+        if self.get_by_code(&code).is_some() {
             return;
         }
 

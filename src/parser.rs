@@ -2,7 +2,7 @@ use pest::iterators::Pairs;
 use pest_derive::Parser;
 
 use crate::{
-    accn::{AccnEntry, AccnEntryMut, AccnTree},
+    accn::{AccnEntryMut, AccnTree},
     valuable::{CurrencyStore, Money, MoneyBuilder},
 };
 
@@ -55,7 +55,6 @@ impl CoinParser {
 mod test {
     use core::panic;
 
-    use itertools::Itertools;
     use pest::{iterators::Pairs, Parser};
 
     use super::*;
