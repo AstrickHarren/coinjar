@@ -53,10 +53,8 @@ impl CoinParser {
     fn parse_money(&mut self, pair: Pair<Rule>) -> Result<Money> {
         let pairs = pair.into_inner();
         let mut builder = MoneyBuilder::default();
-        dbg!(pairs.clone());
 
         for pair in pairs {
-            dbg!(&pair);
             match pair.as_rule() {
                 Rule::symbol => builder.with_symbol(pair.as_str()),
                 Rule::number => builder.with_amount(pair.as_str().parse().unwrap()),
@@ -66,7 +64,6 @@ impl CoinParser {
             };
         }
 
-        dbg!(&builder);
         builder.into_money(&self.currency_store)
     }
 
@@ -78,7 +75,6 @@ impl CoinParser {
         for posting in pairs {
             let mut pairs = posting.into_inner();
             let accn = self.parse_accn(pairs.next().unwrap()).as_ref().id();
-            dbg!(&pairs);
             let money = pairs
                 .next()
                 .map(|p| {
@@ -172,7 +168,7 @@ r#"2021-01-01 Opening Balances
         let mut pairs = IdentParser::parse(Rule::booking, txn).unwrap_or_else(|e| panic!("{}", e));
         let txn = parser
             .parse_txn(
-                dbg!(pairs.next().unwrap()),
+                pairs.next().unwrap(),
                 NaiveDate::from_str("2021-01-01").unwrap(),
             )
             .unwrap_or_else(|e| panic!("{:#}", e));

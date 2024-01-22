@@ -116,8 +116,6 @@ impl TxnBuilder {
     pub(crate) fn build(mut self, txn_store: &mut TxnStore) -> Result<Txn> {
         self.try_infer_inbalence()?;
 
-        dbg!(&self.postings);
-
         let (posting_id, posting): (Vec<_>, Vec<_>) = self
             .postings
             .into_iter()

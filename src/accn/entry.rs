@@ -42,9 +42,7 @@ impl<'a> AccnEntry<'a> {
     }
 
     fn parent(self) -> Option<AccnEntry<'a>> {
-        println!("parent of {}", self.data().name);
         let parent = self.data().parent?;
-        dbg!(self.accn, self.data(), parent);
         Some(parent.into_accn(self.tree))
     }
 
