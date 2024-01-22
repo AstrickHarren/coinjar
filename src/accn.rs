@@ -7,7 +7,7 @@ use uuid::Uuid;
 pub(crate) use self::entry::{AccnEntry, AccnEntryMut};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
-struct Accn {
+pub(crate) struct Accn {
     id: Uuid,
 }
 

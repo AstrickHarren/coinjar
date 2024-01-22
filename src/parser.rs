@@ -1,8 +1,12 @@
+use anyhow::Result;
+use chrono::NaiveDate;
+
 use pest::iterators::Pairs;
 use pest_derive::Parser;
 
 use crate::{
     accn::{AccnEntryMut, AccnTree},
+    transaction::{TxnBuilder, TxnStore},
     valuable::{CurrencyStore, Money, MoneyBuilder},
 };
 
@@ -13,15 +17,18 @@ struct IdentParser;
 struct CoinParser {
     currency_store: CurrencyStore,
     accn_tree: AccnTree,
+    txn_store: TxnStore,
 }
 
 impl CoinParser {
     fn new() -> Self {
         let currency_store = CurrencyStore::new();
         let accn_tree = AccnTree::new();
+        let txn_store = TxnStore::default();
         Self {
             currency_store,
             accn_tree,
+            txn_store,
         }
     }
 
@@ -33,7 +40,7 @@ impl CoinParser {
         })
     }
 
-    fn parse_money(&mut self, mut pairs: Pairs<Rule>) -> Option<Money> {
+    fn parse_money(&mut self, mut pairs: Pairs<Rule>) -> Result<Money> {
         let mut builder = MoneyBuilder::default();
         let pairs = pairs.next().unwrap().into_inner();
 
@@ -48,6 +55,23 @@ impl CoinParser {
         }
 
         builder.into_money(&self.currency_store)
+    }
+
+    fn parse_txn(&mut self, mut pairs: Pairs<Rule>, date: NaiveDate) -> Result<()> {
+        let desc = pairs.next().unwrap().as_str().to_string();
+        let mut txn = TxnBuilder::new(date, desc);
+
+        for posting in pairs {
+            let mut pairs = posting.into_inner();
+            let money = pairs
+                .next()
+                .map(|p| self.parse_money(p.into_inner()))
+                .transpose()?;
+            let accn = self.parse_accn(pairs.next().unwrap().into_inner());
+            txn.with_posting(accn.as_ref().id(), money);
+        }
+
+        txn.build(&mut self.txn_store)
     }
 }
 
@@ -85,7 +109,7 @@ mod test {
             let m = parse_money(m);
             let m = parser
                 .parse_money(m)
-                .unwrap_or_else(|| panic!("money parser failed"));
+                .unwrap_or_else(|e| panic!("money parser failed: {}", e));
 
             let m = m.fmt(&parser.currency_store);
             assert_eq!(m, e);

@@ -66,6 +66,10 @@ impl<'a> AccnEntry<'a> {
             tree,
         }
     }
+
+    pub(crate) fn id(self) -> Accn {
+        self.accn
+    }
 }
 
 pub(crate) struct AccnEntryMut<'a> {
