@@ -1,7 +1,10 @@
 use pest::iterators::Pairs;
 use pest_derive::Parser;
 
-use crate::valuable::{CurrencyStore, Money, MoneyBuilder};
+use crate::{
+    accn::{AccnEntry, AccnEntryMut, AccnTree},
+    valuable::{CurrencyStore, Money, MoneyBuilder},
+};
 
 #[derive(Parser)]
 #[grammar = "./parser/coin.pest"]
@@ -9,11 +12,28 @@ struct IdentParser;
 
 struct CoinParser {
     currency_store: CurrencyStore,
+    accn_tree: AccnTree,
 }
 
 impl CoinParser {
-    fn parse_money(&mut self, mut pairs: Pairs<Rule>) -> Option<Money> {
+    fn new() -> Self {
+        let currency_store = CurrencyStore::new();
+        let accn_tree = AccnTree::new();
+        Self {
+            currency_store,
+            accn_tree,
+        }
+    }
+
+    fn parse_accn(&mut self, pairs: Pairs<Rule>) -> AccnEntryMut {
         dbg!(&pairs);
+        pairs.fold(self.accn_tree.root_mut(), |accn, pair| {
+            debug_assert_eq!(pair.as_rule(), Rule::ident);
+            accn.or_open_child(pair.as_str())
+        })
+    }
+
+    fn parse_money(&mut self, mut pairs: Pairs<Rule>) -> Option<Money> {
         let mut builder = MoneyBuilder::default();
         let pairs = pairs.next().unwrap().into_inner();
 
@@ -27,13 +47,15 @@ impl CoinParser {
             };
         }
 
-        dbg!(&builder);
         builder.into_money(&self.currency_store)
     }
 }
 
 #[cfg(test)]
 mod test {
+    use core::panic;
+
+    use itertools::Itertools;
     use pest::{iterators::Pairs, Parser};
 
     use super::*;
@@ -59,10 +81,7 @@ mod test {
             ("-10.00 GBP", "-10.00£"),
         ];
 
-        let mut parser = CoinParser {
-            currency_store: CurrencyStore::new(),
-        };
-
+        let mut parser = CoinParser::new();
         for (m, e) in money {
             let m = parse_money(m);
             let m = parser
@@ -71,6 +90,18 @@ mod test {
 
             let m = m.fmt(&parser.currency_store);
             assert_eq!(m, e);
+        }
+    }
+
+    #[test]
+    fn test_accn() {
+        let accn = vec!["assets"];
+        let mut parser = CoinParser::new();
+
+        for a in accn {
+            let pairs = IdentParser::parse(Rule::accn, a).unwrap_or_else(|e| panic!("{}", e));
+            let accn = parser.parse_accn(pairs);
+            dbg!(&parser.accn_tree);
         }
     }
 
