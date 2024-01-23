@@ -44,7 +44,7 @@ pub(crate) struct TxnEntry<'a> {
     journal: &'a Journal,
 }
 
-impl TxnEntry<'_> {
+impl<'a> TxnEntry<'a> {
     fn data(&self) -> &TxnData {
         &self.journal.txns.txns[&self.txn]
     }
@@ -57,6 +57,10 @@ impl TxnEntry<'_> {
                 posting: *posting,
                 journal: self.journal,
             })
+    }
+
+    pub(super) fn new(txn: Txn, journal: &'a Journal) -> Self {
+        Self { txn, journal }
     }
 }
 

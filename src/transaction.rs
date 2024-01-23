@@ -1,10 +1,11 @@
 pub mod entry;
 
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt::Display};
 
 use anyhow::{anyhow, Result};
 use chrono::NaiveDate;
 
+use itertools::Itertools;
 use rust_decimal::prelude::Zero;
 use uuid::Uuid;
 
@@ -12,6 +13,8 @@ use crate::{
     accn::{Accn, AccnTree},
     valuable::{CurrencyStore, Money, Valuable},
 };
+
+use self::entry::TxnEntry;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct Posting {
@@ -151,5 +154,19 @@ impl Journal {
             txns,
             currencies,
         }
+    }
+
+    pub(crate) fn txns(&self) -> impl Iterator<Item = TxnEntry<'_>> {
+        self.txns
+            .txns
+            .keys()
+            .copied()
+            .map(move |txn| TxnEntry::new(txn, self))
+    }
+}
+
+impl Display for Journal {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.txns().format("\n\n").fmt(f)
     }
 }

@@ -4,10 +4,10 @@ REST_OF_LINE = _{ (!"\n" ~ ANY)* }
 LINE_BREAK = _{ "\n" }
 EOF = _{ !ANY }
 
-year  =  { ASCII_DIGIT{4} }
-month =  { ASCII_DIGIT{2} }
-day   =  { ASCII_DIGIT{2} }
-date  = _{ year ~ "-" ~ month ~ "-" ~ day }
+year  =  _{ ASCII_DIGIT{4} }
+month =  _{ ASCII_DIGIT{2} }
+day   =  _{ ASCII_DIGIT{2} }
+date  = { year ~ "-" ~ month ~ "-" ~ day }
 
 ident  = @{ (ASCII_ALPHA) ~ (ASCII_ALPHANUMERIC | "-" | "@" | "_")* }
 accn   = { ident ~ (":" ~ ident)* }

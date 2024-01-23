@@ -1,7 +1,10 @@
-use anyhow::{Context, Result};
+use anyhow::{Context, Ok, Result};
 use chrono::NaiveDate;
 
-use pest::{iterators::Pair, Span};
+use pest::{
+    iterators::{Pair, Pairs},
+    Span,
+};
 use pest_derive::Parser;
 
 use crate::{
@@ -88,6 +91,26 @@ impl CoinParser {
         txn.build(&mut self.txn_store)
     }
 
+    fn parse_chapter(&mut self, pair: Pair<Rule>) -> Result<()> {
+        let mut pairs = pair.into_inner();
+        let date = pairs.next().unwrap().as_str().parse()?;
+        for pair in pairs {
+            self.parse_txn(pair, date)?;
+        }
+        Ok(())
+    }
+
+    fn parse_journal(mut self, pair: Pairs<Rule>) -> Result<Journal> {
+        for pair in pair {
+            match pair.as_rule() {
+                Rule::chapter => self.parse_chapter(pair)?,
+                _ => unreachable!(),
+            }
+        }
+
+        self.into_journal()
+    }
+
     fn into_journal(self) -> Result<Journal> {
         Ok(Journal::new(
             self.accn_tree,
@@ -105,6 +128,24 @@ mod test {
     use pest::{iterators::Pairs, Parser};
 
     use super::*;
+
+    #[rustfmt::skip]
+const TXN_INPUT: &str = 
+r#"Opening Balances
+    assets:cash:checking  $1000.00
+    equity:opening-balances"#;
+
+    #[rustfmt::skip]
+const JOURNAL_INPUT: &str = 
+r#"2021-01-01 Opening Balances
+    assets:cash:checking  $1000.00
+    equity:opening-balances"#;
+
+    #[rustfmt::skip]
+const JOURNAL_OUTPUT: &str =
+r#"2021-01-01 Opening Balances
+    assets:cash:checking                                          $1000.00
+    equity:opening-balances                                      -$1000.00"#;
 
     fn parse_money(money: &str) -> Pairs<Rule> {
         IdentParser::parse(Rule::money_test, money).unwrap_or_else(|e| panic!("{}", e))
@@ -153,19 +194,9 @@ mod test {
 
     #[test]
     fn test_txn() {
-        let txn = r#"Opening Balances
-            assets:cash:checking  $1000.00
-            equity:opening-balances
-        "#;
-
-        #[rustfmt::skip]
-let ret =
-r#"2021-01-01 Opening Balances
-    assets:cash:checking                                          $1000.00
-    equity:opening-balances                                      -$1000.00"#;
-
         let mut parser = CoinParser::new();
-        let mut pairs = IdentParser::parse(Rule::booking, txn).unwrap_or_else(|e| panic!("{}", e));
+        let mut pairs =
+            IdentParser::parse(Rule::booking, TXN_INPUT).unwrap_or_else(|e| panic!("{}", e));
         let txn = parser
             .parse_txn(
                 pairs.next().unwrap(),
@@ -173,16 +204,18 @@ r#"2021-01-01 Opening Balances
             )
             .unwrap_or_else(|e| panic!("{:#}", e));
         let journal = parser.into_journal().unwrap_or_else(|e| panic!("{}", e));
-
-        println!("journal:\n{}", txn.into_txn(&journal));
-
-        assert_eq!(txn.into_txn(&journal).to_string(), ret);
+        assert_eq!(txn.into_txn(&journal).to_string(), JOURNAL_OUTPUT);
     }
 
     #[test]
-    fn test_ident() {
-        let file = "./example/simple.coin";
-        let input = std::fs::read_to_string(file).unwrap();
-        IdentParser::parse(Rule::grammar, &input).unwrap_or_else(|e| panic!("{}", e));
+    fn test_ident() -> Result<()> {
+        let parser = CoinParser::new();
+        let pairs =
+            IdentParser::parse(Rule::grammar, &JOURNAL_INPUT).unwrap_or_else(|e| panic!("{:#}", e));
+        let journal = parser
+            .parse_journal(pairs)
+            .unwrap_or_else(|e| panic!("{:#}", e));
+        assert_eq!(journal.to_string(), JOURNAL_OUTPUT);
+        Ok(())
     }
 }
