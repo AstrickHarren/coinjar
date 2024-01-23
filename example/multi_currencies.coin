@@ -1,0 +1,19 @@
+;ok
+
+2015-01-15 
+budget food
+    expense:food         
+    asset:cash          -$10
+    liability:credit    -10 EUR
+
+2015-01-13 
+budget rent
+    expense:rent         $1000
+    asset:cash      -10 EUR
+    liability:credit
+
+2015-01-14
+watch play
+    expense:entertainment  50 GBP
+    asset:cash       -10 EUR
+    liability:contact:john

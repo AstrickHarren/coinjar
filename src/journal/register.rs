@@ -28,6 +28,7 @@ where
     {
         let init_bal = ValuableEntry::default();
         self.postings
+            .sorted_by_key(|p| p.txn().date())
             .scan(init_bal, |bal, p| {
                 *bal += p.money();
                 RegisterRow {
@@ -39,7 +40,6 @@ where
                 }
                 .into()
             })
-            .sorted_by_key(|row| row.date)
     }
 }
 
