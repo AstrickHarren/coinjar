@@ -1,10 +1,12 @@
 use std::{
     collections::HashMap,
+    fmt::Display,
     iter::Sum,
     ops::{Add, AddAssign, Neg},
 };
 
 use anyhow::{anyhow, Result};
+use itertools::Itertools;
 use rust_decimal::{prelude::Zero, Decimal};
 use uuid::Uuid;
 
@@ -97,6 +99,10 @@ impl Money {
             currency,
         }
     }
+
+    pub(crate) fn into_money(self, store: &CurrencyStore) -> MoneyEntry {
+        MoneyEntry { money: self, store }
+    }
 }
 
 impl Neg for Money {
@@ -106,6 +112,17 @@ impl Neg for Money {
             amount: -self.amount,
             currency: self.currency,
         }
+    }
+}
+
+pub(crate) struct MoneyEntry<'a> {
+    money: Money,
+    store: &'a CurrencyStore,
+}
+
+impl Display for MoneyEntry<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.money.fmt(self.store))
     }
 }
 
@@ -224,5 +241,51 @@ impl Sum<Money> for Valuable {
             valuable += money;
         }
         valuable
+    }
+}
+
+#[derive(Default)]
+pub(crate) struct ValuableEntry<'a> {
+    valuable: HashMap<Currency, MoneyEntry<'a>>,
+}
+
+impl<'a> AddAssign<MoneyEntry<'a>> for ValuableEntry<'a> {
+    fn add_assign(&mut self, rhs: MoneyEntry<'a>) {
+        let currency = rhs.money.currency;
+        let money = self
+            .valuable
+            .entry(currency)
+            .and_modify(|money| money.money.amount += rhs.money.amount)
+            .or_insert_with(|| rhs);
+        if money.money.amount.is_zero() {
+            self.valuable.remove(&currency);
+        }
+    }
+}
+
+impl<'a> Add<MoneyEntry<'a>> for ValuableEntry<'a> {
+    type Output = Self;
+    fn add(mut self, rhs: MoneyEntry<'a>) -> Self::Output {
+        self += rhs;
+        self
+    }
+}
+
+impl<'a> Sum<MoneyEntry<'a>> for ValuableEntry<'a> {
+    fn sum<I: Iterator<Item = MoneyEntry<'a>>>(iter: I) -> Self {
+        let mut valuable = Self::default();
+        for money in iter {
+            valuable += money;
+        }
+        valuable
+    }
+}
+
+impl Display for ValuableEntry<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self.valuable.is_empty() {
+            true => write!(f, "{}", 0),
+            false => self.valuable.values().format(", ").fmt(f),
+        }
     }
 }

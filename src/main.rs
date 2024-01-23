@@ -5,8 +5,9 @@
 use anyhow::Context;
 use clap::Parser;
 use colored::Colorize;
+use itertools::Itertools;
 
-use crate::journal::Journal;
+use crate::journal::{register::QueryType, Journal};
 
 mod accn;
 mod journal;
@@ -30,5 +31,8 @@ fn main() {
             eprintln!("{}: {:#}", "error".red().bold(), e);
             std::process::exit(1);
         });
-    println!("{:#}", journal);
+    println!(
+        "{}",
+        journal.query(QueryType::default()).into_regs().join("\n")
+    );
 }
