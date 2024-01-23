@@ -1,0 +1,8 @@
+2015-01-16 
+budget food
+    expense:food         
+    asset:cash -$10
+
+budget rent
+    expense:rent         $1000
+    asset:cash

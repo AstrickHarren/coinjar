@@ -3,7 +3,7 @@ use chrono::NaiveDate;
 
 use pest::{
     iterators::{Pair, Pairs},
-    Span,
+    Parser, Span,
 };
 use pest_derive::Parser;
 
@@ -71,6 +71,8 @@ impl CoinParser {
     }
 
     fn parse_txn(&mut self, pair: Pair<Rule>, date: NaiveDate) -> Result<Txn> {
+        let span = pair.as_span();
+
         let mut pairs = pair.into_inner();
         let desc = pairs.next().unwrap().as_str().to_string();
         let mut txn = TxnBuilder::new(date, desc);
@@ -89,6 +91,7 @@ impl CoinParser {
         }
 
         txn.build(&mut self.txn_store)
+            .with_context(|| parse_err("error parsing transaction", span))
     }
 
     fn parse_chapter(&mut self, pair: Pair<Rule>) -> Result<()> {
@@ -117,6 +120,16 @@ impl CoinParser {
             self.txn_store,
             self.currency_store,
         ))
+    }
+}
+
+impl Journal {
+    pub(crate) fn from_file(f: &str) -> Result<Self> {
+        let parser = CoinParser::new();
+        let input = std::fs::read_to_string(f)?;
+        let pairs = IdentParser::parse(Rule::grammar, &input)?;
+
+        parser.parse_journal(pairs)
     }
 }
 
@@ -211,7 +224,7 @@ r#"2021-01-01 Opening Balances
     fn test_ident() -> Result<()> {
         let parser = CoinParser::new();
         let pairs =
-            IdentParser::parse(Rule::grammar, &JOURNAL_INPUT).unwrap_or_else(|e| panic!("{:#}", e));
+            IdentParser::parse(Rule::grammar, JOURNAL_INPUT).unwrap_or_else(|e| panic!("{:#}", e));
         let journal = parser
             .parse_journal(pairs)
             .unwrap_or_else(|e| panic!("{:#}", e));

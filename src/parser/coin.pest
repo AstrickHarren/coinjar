@@ -16,7 +16,7 @@ posting = { accn ~ money? }
 booking_desc = { !date ~ REST_OF_LINE }
 booking = { booking_desc ~ LINE_BREAK ~ posting ~ (LINE_BREAK ~ posting)* }
 
-chapter = { date ~ booking? ~ (LINE_BREAK+ ~ booking)* }
+chapter = { date ~ LINE_BREAK* ~ booking? ~ (LINE_BREAK+ ~ booking)* }
 grammar = _{ SOI ~ (LINE_BREAK* ~ chapter)* ~ LINE_BREAK* ~ EOF }
 
 // ------- MONEY -------

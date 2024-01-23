@@ -1,0 +1,8 @@
+2011-01-01
+budget food
+accn:asset           -$10
+expense:food        $10
+
+inbalanced budget food
+accn:asset           -$10
+expense:food        $20
