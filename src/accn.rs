@@ -1,6 +1,6 @@
 pub(crate) mod entry;
 
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt::Display};
 
 use uuid::Uuid;
 
@@ -86,5 +86,11 @@ impl AccnTree {
 
     fn accn_mut(&mut self, accn: Accn) -> AccnEntryMut {
         AccnEntryMut { accn, tree: self }
+    }
+}
+
+impl Display for AccnTree {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.root().fmt_proper_descendent(Box::new(f))
     }
 }

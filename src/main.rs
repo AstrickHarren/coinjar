@@ -30,5 +30,5 @@ fn main() {
             eprintln!("{}: {:#}", "error".red().bold(), e);
             std::process::exit(1);
         });
-    println!("{}", journal);
+    println!("{:#}", journal);
 }

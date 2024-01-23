@@ -11,10 +11,10 @@ struct Test {
 fn test_directive(file: &str) -> Result<Test> {
     let input = std::fs::read_to_string(file)?;
     let directive = input.lines().next().ok_or_else(|| anyhow!("empty file"))?;
-    let directive = directive.trim_start_matches(";");
+    let directive = directive.trim_start_matches(';');
 
     let (cmd, args) = directive
-        .split_once(" ")
+        .split_once(' ')
         .map(|(cmd, args)| (cmd, Err(args.trim().to_string())))
         .unwrap_or_else(|| (directive, Ok(())));
 

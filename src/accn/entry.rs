@@ -1,5 +1,6 @@
-use std::fmt::Display;
+use std::fmt::{Display, Write};
 
+use indenter::indented;
 use itertools::Itertools;
 
 use super::*;
@@ -27,8 +28,18 @@ impl PartialEq for AccnEntry<'_> {
         self.accn == other.accn
     }
 }
-
 impl<'a> AccnEntry<'a> {
+    pub(super) fn fmt_proper_descendent(self, f: Box<&mut dyn Write>) -> std::fmt::Result {
+        for child in self.children() {
+            let f = &mut indented(*f);
+            // NOTE: cannot change the indenting from space directly to branches here because of a limitation of crate indenter
+            // also skips the root node
+            writeln!(f, "└──{}", child.name())?;
+            child.fmt_proper_descendent(Box::new(f))?;
+        }
+
+        Ok(())
+    }
     fn children(self) -> impl Iterator<Item = AccnEntry<'a>> {
         self.tree
             .accns

@@ -5,6 +5,7 @@ use std::{collections::HashMap, fmt::Display};
 use anyhow::{anyhow, Result};
 use chrono::NaiveDate;
 
+use colored::Colorize;
 use itertools::Itertools;
 use rust_decimal::prelude::Zero;
 use uuid::Uuid;
@@ -167,6 +168,12 @@ impl Journal {
 
 impl Display for Journal {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if f.alternate() {
+            writeln!(f, "{}", "Accns:".cyan().bold())?;
+            self.accns.fmt(f)?;
+
+            writeln!(f, "\n{}", "Transactions:".cyan().bold())?;
+        }
         self.txns().format("\n\n").fmt(f)
     }
 }
