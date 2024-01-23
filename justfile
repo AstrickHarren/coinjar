@@ -6,3 +6,5 @@ fix:
 fmt: 
     cargo fmt
 
+test: 
+    cargo nextest run
