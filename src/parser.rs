@@ -9,7 +9,7 @@ use pest_derive::Parser;
 
 use crate::{
     accn::{AccnEntryMut, AccnTree},
-    transaction::{Journal, Txn, TxnBuilder, TxnStore},
+    journal::{Journal, Txn, TxnBuilder, TxnStore},
     valuable::{CurrencyStore, Money, MoneyBuilder},
 };
 

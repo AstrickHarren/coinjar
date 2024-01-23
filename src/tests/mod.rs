@@ -1,7 +1,7 @@
 use anyhow::{anyhow, bail, Context, Result};
 use colored::Colorize;
 
-use crate::transaction::Journal;
+use crate::journal::Journal;
 
 struct Test {
     name: String,

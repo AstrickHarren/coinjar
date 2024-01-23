@@ -6,11 +6,11 @@ use anyhow::Context;
 use clap::Parser;
 use colored::Colorize;
 
-use crate::transaction::Journal;
+use crate::journal::Journal;
 
 mod accn;
+mod journal;
 mod parser;
-mod transaction;
 mod valuable;
 
 #[cfg(test)]
