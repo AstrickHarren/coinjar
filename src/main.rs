@@ -4,14 +4,17 @@
 
 use anyhow::Context;
 use clap::Parser;
+use colored::Colorize;
 
 use crate::transaction::Journal;
 
 mod accn;
 mod parser;
-mod tests;
 mod transaction;
 mod valuable;
+
+#[cfg(test)]
+mod tests;
 
 #[derive(Parser)]
 struct Args {
@@ -24,7 +27,7 @@ fn main() {
     let journal = Journal::from_file(&args.file)
         .with_context(|| format!("Failed to parse journal file {}", args.file))
         .unwrap_or_else(|e| {
-            eprintln!("{:#}", e);
+            eprintln!("{}: {:#}", "error".red().bold(), e);
             std::process::exit(1);
         });
     println!("{}", journal);
