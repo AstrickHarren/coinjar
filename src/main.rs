@@ -9,6 +9,7 @@ use crate::transaction::Journal;
 
 mod accn;
 mod parser;
+mod tests;
 mod transaction;
 mod valuable;
 

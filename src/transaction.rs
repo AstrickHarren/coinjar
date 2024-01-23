@@ -105,7 +105,7 @@ impl TxnBuilder {
                 for money in inbalance {
                     self.with_strict_posting(
                         self.inferred_posting
-                            .ok_or_else(|| anyhow!("transcation not balanced"))?,
+                            .ok_or_else(|| anyhow!("transaction not balanced"))?,
                         -money,
                     );
                 }

@@ -124,12 +124,16 @@ impl CoinParser {
 }
 
 impl Journal {
-    pub(crate) fn from_file(f: &str) -> Result<Self> {
+    fn from_str(s: &str) -> Result<Self> {
         let parser = CoinParser::new();
-        let input = std::fs::read_to_string(f)?;
-        let pairs = IdentParser::parse(Rule::grammar, &input)?;
+        let pairs = IdentParser::parse(Rule::grammar, s)?;
 
         parser.parse_journal(pairs)
+    }
+
+    pub(crate) fn from_file(f: &str) -> Result<Self> {
+        let input = std::fs::read_to_string(f)?;
+        Self::from_str(&input)
     }
 }
 
