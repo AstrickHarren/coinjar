@@ -16,7 +16,7 @@ use crate::{
     valuable::{CurrencyStore, Money, Valuable},
 };
 
-use self::entry::TxnEntry;
+use self::entry::{PostingEntry, TxnEntry};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct Posting {
@@ -164,6 +164,14 @@ impl Journal {
             .keys()
             .copied()
             .map(move |txn| TxnEntry::new(txn, self))
+    }
+
+    pub(crate) fn postings(&self) -> impl Iterator<Item = PostingEntry<'_>> {
+        self.txns
+            .postings
+            .keys()
+            .copied()
+            .map(move |posting| posting.into_posting(self))
     }
 }
 

@@ -87,6 +87,10 @@ impl AccnTree {
     fn accn_mut(&mut self, accn: Accn) -> AccnEntryMut {
         AccnEntryMut { accn, tree: self }
     }
+
+    fn accns(&self) -> impl Iterator<Item = AccnEntry> {
+        self.accns.keys().copied().map(move |accn| self.accn(accn))
+    }
 }
 
 impl Display for AccnTree {

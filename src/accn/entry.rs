@@ -12,14 +12,7 @@ pub(crate) struct AccnEntry<'a> {
 
 impl Display for AccnEntry<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.ancestors()
-            .collect_vec()
-            .into_iter()
-            .rev()
-            .skip(1) // skip root
-            .map(|accn| accn.name())
-            .join(":")
-            .fmt(f)
+        self.abs_name().fmt(f)
     }
 }
 
@@ -65,8 +58,18 @@ impl<'a> AccnEntry<'a> {
         self.children().find(move |child| child.name() == name)
     }
 
-    fn name(self) -> &'a str {
+    pub(crate) fn name(self) -> &'a str {
         &self.tree.accns[&self.accn].name
+    }
+
+    pub(crate) fn abs_name(self) -> String {
+        self.ancestors()
+            .collect_vec()
+            .into_iter()
+            .rev()
+            .skip(1) // skip root
+            .map(|accn| accn.name())
+            .join(":")
     }
 
     fn as_mut(self, tree: &mut AccnTree) -> AccnEntryMut<'_> {

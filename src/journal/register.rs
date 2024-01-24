@@ -74,6 +74,7 @@ impl Display for RegisterRow {
 pub(crate) enum QueryType {
     #[default]
     All,
+    MatchAccn(String),
 }
 
 impl Journal {
@@ -84,6 +85,10 @@ impl Journal {
                 .postings
                 .keys()
                 .map(|p| p.into_posting(self))
+                .into(),
+            QueryType::MatchAccn(s) => self
+                .postings()
+                .filter(move |p| p.accn().abs_name().contains(&s))
                 .into(),
         }
     }
