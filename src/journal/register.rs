@@ -7,25 +7,20 @@ use crate::valuable::ValuableEntry;
 
 use super::{entry::PostingEntry, Journal};
 
-pub(crate) struct PostingQuery<'a, I>
-where
-    I: Iterator<Item = PostingEntry<'a>>,
-{
-    postings: I,
+trait PostingIterator<'a> = Iterator<Item = PostingEntry<'a>> + 'a;
+
+pub(crate) struct PostingQuery<'a> {
+    postings: Box<dyn PostingIterator<'a> + 'a>,
 }
 
-impl<'a, I> PostingQuery<'a, I>
-where
-    I: Iterator<Item = PostingEntry<'a>>,
-{
-    fn new(postings: I) -> Self {
-        Self { postings }
+impl<'a> PostingQuery<'a> {
+    fn new(postings: impl PostingIterator<'a> + 'a) -> Self {
+        Self {
+            postings: Box::new(postings),
+        }
     }
 
-    pub(crate) fn into_regs(self) -> impl Iterator<Item = RegisterRow> + 'a
-    where
-        I: 'a,
-    {
+    pub(crate) fn into_regs(self) -> impl Iterator<Item = RegisterRow> + 'a {
         let init_bal = ValuableEntry::default();
         self.postings
             .sorted_by_key(|p| p.txn().date())
@@ -43,9 +38,9 @@ where
     }
 }
 
-impl<'a, I> From<I> for PostingQuery<'a, I>
+impl<'a, I> From<I> for PostingQuery<'a>
 where
-    I: Iterator<Item = PostingEntry<'a>>,
+    I: PostingIterator<'a>,
 {
     fn from(postings: I) -> Self {
         Self::new(postings)
@@ -82,10 +77,7 @@ pub(crate) enum QueryType {
 }
 
 impl Journal {
-    pub(crate) fn query(
-        &self,
-        query: QueryType,
-    ) -> PostingQuery<impl Iterator<Item = PostingEntry>> {
+    pub(crate) fn query(&self, query: QueryType) -> PostingQuery {
         match query {
             QueryType::All => self
                 .txns
