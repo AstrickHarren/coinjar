@@ -12,7 +12,6 @@ use crate::journal::{register::QueryType, Journal};
 
 mod accn;
 mod journal;
-mod parser;
 mod valuable;
 
 #[cfg(test)]

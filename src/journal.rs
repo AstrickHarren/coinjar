@@ -1,4 +1,5 @@
 pub mod entry;
+pub mod parser;
 pub mod register;
 
 use std::{collections::HashMap, fmt::Display};
