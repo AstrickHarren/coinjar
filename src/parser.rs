@@ -53,7 +53,7 @@ impl CoinParser {
         })
     }
 
-    fn parse_money(&mut self, pair: Pair<Rule>) -> Result<Money> {
+    fn parse_money_builder(pair: Pair<Rule>) -> Result<MoneyBuilder> {
         let pairs = pair.into_inner();
         let mut builder = MoneyBuilder::default();
 
@@ -67,6 +67,11 @@ impl CoinParser {
             };
         }
 
+        Ok(builder)
+    }
+
+    fn parse_money(&mut self, pair: Pair<Rule>) -> Result<Money> {
+        let builder = Self::parse_money_builder(pair)?;
         builder.into_money(&self.currency_store)
     }
 
