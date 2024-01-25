@@ -105,10 +105,69 @@ impl AccnTree {
             .filter(move |accn| accn.name() == name)
             .exactly_one()
     }
+
+    /// Takes a fuzzy input as `ex:common:food` and returns every accn that
+    /// has all of its nearest ancestors with a name that contains the input.
+    /// For example, `ex:common:food` would return `expense:common:food` and
+    /// `asset:extra:common:food`
+    pub(crate) fn by_name_fuzzy<'a>(
+        &'a self,
+        name: &'a str,
+    ) -> impl Iterator<Item = AccnEntry<'_>> + '_ {
+        fn fuzzy_match(matcher: &str, matchee: &str) -> bool {
+            matcher
+                .to_lowercase()
+                .contains(matchee.to_lowercase().as_str())
+        }
+
+        let parts = name.split(':').collect_vec();
+        let fuzzy = self
+            .root()
+            .traverse(
+                vec![],
+                move |st, accn| {
+                    st.push(accn.name());
+                    st.iter()
+                        .skip(st.len().saturating_sub(parts.len()))
+                        .zip(parts.iter())
+                        .all(|(st, pt)| fuzzy_match(st, pt))
+                        .then_some(accn)
+                },
+                |st, _| {
+                    st.pop();
+                    None
+                },
+            )
+            .filter_map(|accn| accn);
+
+        fuzzy
+    }
 }
 
 impl Display for AccnTree {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.root().fmt_proper_descendent(Box::new(f))
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_by_name_fuzzy() {
+        let mut tree = AccnTree::new();
+        tree.root_mut()
+            .or_open_child("a")
+            .or_open_child("aa")
+            .or_open_child("aab")
+            .or_open_child("aaab")
+            .or_open_child("b")
+            .or_open_child("ba")
+            .or_open_child("bab")
+            .or_open_child("baab");
+
+        let entry = tree.by_name_fuzzy("a:a").map(|e| e.name()).collect_vec();
+        assert_eq!(entry, vec!["aa", "aab", "aaab", "bab", "baab"]);
     }
 }

@@ -21,6 +21,12 @@ impl PartialEq for AccnEntry<'_> {
         self.accn == other.accn
     }
 }
+
+enum DepthChange {
+    Inc,
+    Dec,
+}
+
 impl<'a> AccnEntry<'a> {
     pub(super) fn fmt_proper_descendent(self, f: Box<&mut dyn Write>) -> std::fmt::Result {
         for child in self.children() {
@@ -43,6 +49,43 @@ impl<'a> AccnEntry<'a> {
 
     fn ancestors(self) -> impl Iterator<Item = AccnEntry<'a>> {
         std::iter::successors(Some(self), move |accn| accn.parent())
+    }
+
+    pub(super) fn descendants_pre_order(self) -> Box<dyn Iterator<Item = AccnEntry<'a>> + 'a> {
+        Box::new(
+            std::iter::once(self).chain(
+                self.children()
+                    .flat_map(|child| child.descendants_pre_order()),
+            ),
+        )
+    }
+
+    fn descendants_pre_order_with_depth_change(
+        self,
+    ) -> Box<dyn Iterator<Item = (AccnEntry<'a>, DepthChange)> + 'a> {
+        Box::new(
+            std::iter::once((self, DepthChange::Inc)).chain(
+                self.children()
+                    .flat_map(|child| child.descendants_pre_order_with_depth_change())
+                    .chain(std::iter::once((self, DepthChange::Dec))),
+            ),
+        )
+    }
+
+    pub(super) fn traverse<St: 'a, T>(
+        self,
+        init_state: St,
+        mut on_depth_inc: impl FnMut(&mut St, AccnEntry<'a>) -> T + 'a,
+        mut on_depth_dec: impl FnMut(&mut St, AccnEntry<'a>) -> T + 'a,
+    ) -> Box<dyn Iterator<Item = T> + 'a> {
+        let iter = self.descendants_pre_order_with_depth_change();
+        Box::new(iter.scan(
+            init_state,
+            move |st, (accn, depth_change)| match depth_change {
+                DepthChange::Inc => on_depth_inc(st, accn).into(),
+                DepthChange::Dec => on_depth_dec(st, accn).into(),
+            },
+        ))
     }
 
     fn parent(self) -> Option<AccnEntry<'a>> {
@@ -126,6 +169,11 @@ mod test {
             .or_open_child("assets")
             .or_open_child("bank")
             .or_open_child("checking");
+
+        tree.root_mut()
+            .or_open_child("expense")
+            .or_open_child("food")
+            .or_open_child("groceries");
         tree
     }
 
@@ -167,5 +215,25 @@ mod test {
         };
 
         assert_eq!(checking.unwrap().to_string(), "assets:bank:checking");
+    }
+
+    #[test]
+    fn test_traverse() {
+        let example_tree = example_tree();
+        let names = example_tree
+            .root()
+            .traverse(
+                Vec::new(),
+                |st, accn| {
+                    st.push(accn.name().to_string());
+                    Some(st.clone())
+                },
+                |st, _| {
+                    st.pop();
+                    None
+                },
+            )
+            .filter_map(|st| st);
+        println!("{:#?}", names.collect_vec());
     }
 }
