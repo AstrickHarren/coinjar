@@ -10,7 +10,7 @@ use pest_derive::Parser;
 use crate::{
     accn::{AccnEntryMut, AccnTree},
     journal::{Journal, Txn, TxnBuilder, TxnStore},
-    valuable::{CurrencyStore, Money, MoneyBuilder},
+    valuable::{CurrencyStore, Money, MoneyBuilder, MoneyEntry},
 };
 
 #[derive(Parser)]
@@ -139,6 +139,12 @@ impl Journal {
     pub(crate) fn from_file(f: &str) -> Result<Self> {
         let input = std::fs::read_to_string(f)?;
         Self::from_str(&input)
+    }
+
+    pub(crate) fn parse_money(&self, money: &str) -> Result<MoneyEntry> {
+        let pair = IdentParser::parse(Rule::money, money)?.next().unwrap();
+        let money = CoinParser::parse_money_builder(pair)?.into_money(&self.currencies)?;
+        Ok(money.into_money(&self.currencies))
     }
 }
 

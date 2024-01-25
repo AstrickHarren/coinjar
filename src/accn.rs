@@ -2,6 +2,7 @@ pub(crate) mod entry;
 
 use std::{collections::HashMap, fmt::Display};
 
+use itertools::Itertools;
 use uuid::Uuid;
 
 pub(crate) use self::entry::{AccnEntry, AccnEntryMut};
@@ -90,6 +91,19 @@ impl AccnTree {
 
     fn accns(&self) -> impl Iterator<Item = AccnEntry> {
         self.accns.keys().copied().map(move |accn| self.accn(accn))
+    }
+
+    /// Return the AccnEntry for the given name, if it exists and unique.
+    pub(crate) fn by_name_unique<'a, 'b>(
+        &'a self,
+        name: &'b str,
+    ) -> Result<AccnEntry<'a>, impl Iterator<Item = AccnEntry<'a>> + 'b>
+    where
+        'a: 'b,
+    {
+        self.accns()
+            .filter(move |accn| accn.name() == name)
+            .exactly_one()
     }
 }
 

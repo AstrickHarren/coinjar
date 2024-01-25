@@ -143,6 +143,28 @@ impl TxnBuilder {
     }
 }
 
+pub(crate) struct TxnBuilderMut<'a> {
+    builder: TxnBuilder,
+    journal: &'a mut Journal,
+}
+
+impl<'a> TxnBuilderMut<'a> {
+    pub(crate) fn with_posting(
+        mut self,
+        accn: impl Into<Accn>,
+        money: Option<impl Into<Money>>,
+    ) -> Self {
+        self.builder
+            .with_posting(accn.into(), money.map(|m| m.into()));
+        self
+    }
+
+    pub(crate) fn build(self) -> Result<TxnEntry<'a>> {
+        let txn = self.builder.build(&mut self.journal.txns)?;
+        Ok(TxnEntry::new(txn, self.journal))
+    }
+}
+
 #[derive(Debug)]
 pub(crate) struct Journal {
     accns: AccnTree,
@@ -167,12 +189,27 @@ impl Journal {
             .map(move |txn| TxnEntry::new(txn, self))
     }
 
+    pub(crate) fn txn(&self, txn: Txn) -> TxnEntry<'_> {
+        TxnEntry::new(txn, self)
+    }
+
     pub(crate) fn postings(&self) -> impl Iterator<Item = PostingEntry<'_>> {
         self.txns
             .postings
             .keys()
             .copied()
             .map(move |posting| posting.into_posting(self))
+    }
+
+    pub(crate) fn new_txn(&mut self, date: NaiveDate, desc: String) -> TxnBuilderMut<'_> {
+        TxnBuilderMut {
+            builder: TxnBuilder::new(date, desc),
+            journal: self,
+        }
+    }
+
+    pub(crate) fn accns(&self) -> &AccnTree {
+        &self.accns
     }
 }
 

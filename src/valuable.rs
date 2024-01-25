@@ -120,6 +120,18 @@ pub(crate) struct MoneyEntry<'a> {
     store: &'a CurrencyStore,
 }
 
+impl MoneyEntry<'_> {
+    pub(crate) fn money(&self) -> Money {
+        self.money
+    }
+}
+
+impl From<MoneyEntry<'_>> for Money {
+    fn from(entry: MoneyEntry) -> Self {
+        entry.money
+    }
+}
+
 impl Display for MoneyEntry<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.money.fmt(self.store))
