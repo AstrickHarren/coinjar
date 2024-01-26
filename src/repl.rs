@@ -6,8 +6,8 @@ use anyhow::{Context, Result};
 use chrono::{Local, NaiveDate};
 use clap::Parser;
 use colored::Colorize;
-use inquire::Text;
 use itertools::Itertools;
+use rustyline::error::ReadlineError;
 
 use crate::journal::{register::QueryType, Journal, Txn};
 
@@ -65,9 +65,18 @@ pub(crate) fn repl() {
         new_txns: Vec::new(),
     };
 
+    let mut rl = rustyline::DefaultEditor::new().unwrap();
     loop {
         let ret: Result<()> = try {
-            let cmd = Text::new("").prompt()?;
+            // let cmd: String = Input::new().interact_text()?;
+            let cmd = rl.readline("coinjar> ");
+            let cmd = match cmd {
+                Err(ReadlineError::Interrupted) => continue,
+                Err(ReadlineError::Eof) => return,
+                cmd => cmd?,
+            };
+            rl.add_history_entry(cmd.as_str())?;
+
             let cmd =
                 Cmd::try_parse_from(std::iter::once("").chain(cmd.as_str().split_whitespace()))?;
 
