@@ -7,7 +7,10 @@ use std::{
 
 use anyhow::{anyhow, Result};
 use itertools::Itertools;
-use rust_decimal::{prelude::Zero, Decimal};
+use rust_decimal::{
+    prelude::{Signed, ToPrimitive, Zero},
+    Decimal, RoundingStrategy,
+};
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -100,8 +103,36 @@ impl Money {
         }
     }
 
+    fn new(amount: Decimal, currency: Currency) -> Self {
+        Self { amount, currency }
+    }
+
     pub(crate) fn into_money(self, store: &CurrencyStore) -> MoneyEntry {
         MoneyEntry { money: self, store }
+    }
+
+    /// Split money into n parts, each with dp decimal places, guaranteeing that
+    /// the sum of the parts is equal to the original amount, and that the
+    /// difference between the largest and smallest part is less than or equal
+    /// to 1e-dp.
+    pub(crate) fn split(self, n: usize, dp: u32) -> impl Iterator<Item = Self> {
+        let amount: Decimal = self.amount / Decimal::from(n);
+        let amount = amount.round_dp_with_strategy(dp, RoundingStrategy::MidpointNearestEven);
+        let remainder: Decimal = self.amount - amount * Decimal::from(n);
+        let signum = remainder.signum();
+
+        let complement = Decimal::from_scientific(&format!("1e-{}", dp)).unwrap() * signum;
+        let n_complements = (remainder / complement).abs().to_usize().unwrap();
+
+        let moneys = std::iter::repeat(amount)
+            .take(n)
+            .enumerate()
+            .map(move |(i, amount)| match i < n_complements {
+                true => amount + complement,
+                false => amount,
+            })
+            .map(move |amount| Self::new(amount, self.currency));
+        moneys
     }
 }
 
@@ -299,5 +330,30 @@ impl Display for ValuableEntry<'_> {
             true => write!(f, "{}", 0),
             false => self.valuable.values().format(", ").fmt(f),
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use rust_decimal_macros::dec;
+
+    #[test]
+    fn test_split() {
+        let de = dec!(100.00);
+        let dp = 11;
+        let n = 11;
+        let precision = Decimal::from_scientific(&format!("1e-{}", dp)).unwrap();
+
+        let money = Money::new(de, Currency::new());
+        let moneys: Vec<_> = money.split(n, dp).map(|money| money.amount).collect();
+
+        dbg!(&moneys);
+        let sum = moneys.iter().sum::<Decimal>();
+        let max = moneys.iter().max().unwrap();
+        let min = moneys.iter().min().unwrap();
+
+        assert_eq!(sum, de);
+        assert!(max - min <= precision);
     }
 }
