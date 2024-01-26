@@ -69,10 +69,10 @@ impl SplitBuilder {
         }
 
         let moneys = money.split(self.payees.len(), 2);
-        let mut txn = journal.new_txn(date, desc).with_posting(recv, Some(money));
+        let mut txn = journal.new_txn(date, desc).with_posting(recv, Some(-money));
 
         for money in moneys {
-            txn = txn.with_posting(self.payees.pop().unwrap(), Some(-money));
+            txn = txn.with_posting_combined(self.payees.pop().unwrap(), Some(money));
         }
         txn.build()
     }
@@ -85,8 +85,6 @@ pub(super) fn split<'a>(
     args: &[String],
     state: &ReplState,
 ) -> Result<TxnEntry<'a>> {
-    // let args = args.split_whitespace();
-
     let mut st = SplitSt::Money;
     let mut builder = SplitBuilder::default();
 

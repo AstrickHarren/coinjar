@@ -84,6 +84,20 @@ impl TxnBuilder {
         self
     }
 
+    fn with_strict_posting_combined(&mut self, accn: Accn, money: Money) -> &mut Self {
+        match self
+            .postings
+            .iter_mut()
+            .find(|p| p.accn == accn && p.money.eq_currency(&money))
+        {
+            Some(posting) => {
+                posting.money += money;
+                self
+            }
+            None => self.with_strict_posting(accn, money),
+        }
+    }
+
     fn with_inferred_posting(&mut self, accn: Accn) -> &mut Self {
         self.inferred_posting = Some(accn);
         self
@@ -96,6 +110,13 @@ impl TxnBuilder {
     pub(crate) fn with_posting(&mut self, accn: Accn, money: Option<Money>) -> &mut Self {
         match money {
             Some(money) => self.with_strict_posting(accn, money),
+            None => self.with_inferred_posting(accn),
+        }
+    }
+
+    pub(crate) fn with_posting_combined(&mut self, accn: Accn, money: Option<Money>) -> &mut Self {
+        match money {
+            Some(money) => self.with_strict_posting_combined(accn, money),
             None => self.with_inferred_posting(accn),
         }
     }
@@ -156,6 +177,16 @@ impl<'a> TxnBuilderMut<'a> {
     ) -> Self {
         self.builder
             .with_posting(accn.into(), money.map(|m| m.into()));
+        self
+    }
+
+    pub(crate) fn with_posting_combined(
+        mut self,
+        accn: impl Into<Accn>,
+        money: Option<impl Into<Money>>,
+    ) -> Self {
+        self.builder
+            .with_posting_combined(accn.into(), money.map(|m| m.into()));
         self
     }
 

@@ -107,6 +107,10 @@ impl Money {
         Self { amount, currency }
     }
 
+    pub(super) fn eq_currency(&self, other: &Self) -> bool {
+        self.currency == other.currency
+    }
+
     pub(crate) fn into_money(self, store: &CurrencyStore) -> MoneyEntry {
         MoneyEntry { money: self, store }
     }
@@ -145,6 +149,13 @@ impl Neg for Money {
             amount: -self.amount,
             currency: self.currency,
         }
+    }
+}
+
+impl AddAssign for Money {
+    fn add_assign(&mut self, rhs: Self) {
+        debug_assert!(self.eq_currency(&rhs));
+        self.amount += rhs.amount;
     }
 }
 
