@@ -1,3 +1,5 @@
+use std::io::Write;
+
 use anyhow::{Context, Ok, Result};
 use chrono::NaiveDate;
 
@@ -139,6 +141,12 @@ impl Journal {
     pub(crate) fn from_file(f: &str) -> Result<Self> {
         let input = std::fs::read_to_string(f)?;
         Self::from_str(&input)
+    }
+
+    pub(crate) fn save_to_file(&self, f: &str) -> Result<()> {
+        let mut file = std::fs::File::create(f)?;
+        file.write_all(self.to_string().as_bytes())?;
+        Ok(())
     }
 
     pub(crate) fn parse_money(&self, money: &str) -> Result<MoneyEntry> {

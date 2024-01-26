@@ -22,6 +22,12 @@ impl PartialEq for AccnEntry<'_> {
     }
 }
 
+impl From<AccnEntry<'_>> for Accn {
+    fn from(accn: AccnEntry) -> Self {
+        accn.accn
+    }
+}
+
 enum DepthChange {
     Inc,
     Dec,
@@ -233,7 +239,7 @@ mod test {
                     None
                 },
             )
-            .filter_map(|st| st);
+            .flatten();
         println!("{:#?}", names.collect_vec());
     }
 }

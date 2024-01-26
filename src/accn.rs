@@ -138,7 +138,7 @@ impl AccnTree {
                     None
                 },
             )
-            .filter_map(|accn| accn);
+            .flatten();
 
         fuzzy
     }

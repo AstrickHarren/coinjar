@@ -90,6 +90,12 @@ impl<'a> TxnEntry<'a> {
     }
 }
 
+impl From<TxnEntry<'_>> for Txn {
+    fn from(entry: TxnEntry) -> Self {
+        entry.txn
+    }
+}
+
 impl Display for TxnEntry<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(

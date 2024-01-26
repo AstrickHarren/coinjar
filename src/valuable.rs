@@ -122,17 +122,19 @@ impl Money {
         let signum = remainder.signum();
 
         let complement = Decimal::from_scientific(&format!("1e-{}", dp)).unwrap() * signum;
-        let n_complements = (remainder / complement).abs().to_usize().unwrap();
+        let n_complements = match complement.is_zero() {
+            true => 0,
+            false => (remainder / complement).abs().to_usize().unwrap(),
+        };
 
-        let moneys = std::iter::repeat(amount)
+        std::iter::repeat(amount)
             .take(n)
             .enumerate()
             .map(move |(i, amount)| match i < n_complements {
                 true => amount + complement,
                 false => amount,
             })
-            .map(move |amount| Self::new(amount, self.currency));
-        moneys
+            .map(move |amount| Self::new(amount, self.currency))
     }
 }
 
