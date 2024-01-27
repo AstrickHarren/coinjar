@@ -112,7 +112,7 @@ impl AccnTree {
     /// `asset:extra:common:food`
     pub(crate) fn by_name_fuzzy<'a>(
         &'a self,
-        name: &'a str,
+        name: impl AsAccnPath<'a> + 'a,
     ) -> impl Iterator<Item = AccnEntry<'_>> + '_ {
         fn fuzzy_match(matcher: &str, matchee: &str) -> bool {
             matcher
@@ -120,7 +120,7 @@ impl AccnTree {
                 .contains(matchee.to_lowercase().as_str())
         }
 
-        let parts = name.split(':').collect_vec();
+        let parts = name.as_accn_path().collect_vec();
         let fuzzy = self
             .root()
             .traverse(
@@ -147,6 +147,22 @@ impl AccnTree {
 impl Display for AccnTree {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.root().fmt_proper_descendent(Box::new(f))
+    }
+}
+
+pub(crate) trait AsAccnPath<'a> {
+    fn as_accn_path(self) -> impl Iterator<Item = &'a str>;
+}
+
+impl<'a> AsAccnPath<'a> for &'a str {
+    fn as_accn_path(self) -> impl Iterator<Item = &'a str> {
+        self.split(':')
+    }
+}
+
+impl<'a> AsAccnPath<'a> for Vec<&'a str> {
+    fn as_accn_path(self) -> impl Iterator<Item = &'a str> {
+        self.into_iter()
     }
 }
 
