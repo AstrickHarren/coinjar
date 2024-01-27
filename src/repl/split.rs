@@ -1,5 +1,6 @@
 use anyhow::{anyhow, bail};
 
+use inquire::Text;
 use pest::Parser;
 use split::util::find_or_create_accn;
 
@@ -46,7 +47,11 @@ impl SplitBuilder {
     fn build(mut self, journal: &mut Journal, date: NaiveDate) -> Result<TxnEntry> {
         let money = self.money.ok_or_else(|| anyhow!("missing money"))?;
         let recv = self.recv.ok_or_else(|| anyhow!("missing recv"))?;
-        let desc = self.desc.unwrap_or_default();
+        let desc = self.desc.ok_or(()).or_else(|_| {
+            Text::new("enter desc")
+                .prompt()
+                .map_err(|e| anyhow!("{}", e))
+        })?;
         if self.payees.is_empty() {
             bail!("missing payees");
         }
