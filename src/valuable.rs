@@ -44,6 +44,9 @@ impl CurrencyStore {
         store.insert("USD".to_string(), "$".to_string(), true);
         store.insert("GBP".to_string(), "£".to_string(), false);
         store.insert("EUR".to_string(), "€".to_string(), true);
+        store.insert("RUB".to_string(), "₽".to_string(), false);
+        store.insert("CNY".to_string(), "¥".to_string(), true);
+        store.insert("BTC".to_string(), "₿".to_string(), true);
         store
     }
 
