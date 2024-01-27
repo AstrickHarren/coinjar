@@ -39,9 +39,7 @@ enum Cmd {
     Accns,
 
     #[clap(trailing_var_arg = true)]
-    Split {
-        args: Vec<String>,
-    },
+    Split,
 }
 
 pub(crate) fn repl() {
@@ -99,7 +97,7 @@ pub(crate) fn repl() {
                     journal.save_to_file(&st.file)?;
                     st.new_txns.clear();
                 }
-                Cmd::Split { args: _ } => {
+                Cmd::Split => {
                     let txn = split::split(&mut journal, input, &st)?;
                     println!("{}", &txn);
                     st.new_txns.push(txn.into());
