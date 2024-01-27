@@ -10,7 +10,7 @@ day   =  _{ ASCII_DIGIT{2} }
 date  = { year ~ "-" ~ month ~ "-" ~ day }
 
 ident  = @{ (ASCII_ALPHA) ~ (ASCII_ALPHANUMERIC | "-" | "@" | "_")* }
-accn   = { ident ~ (":" ~ ident)* }
+accn   = ${ ident ~ (":" ~ ident)* }
 
 posting = { accn ~ money? }
 booking_desc = { !date ~ REST_OF_LINE }
@@ -32,3 +32,17 @@ money_var_4 = ${ neg? ~ number ~ WHITESPACE+ ~ code }   // -10.00 GBP
 money = _{ money_var_1 | money_var_2 | money_var_3 | money_var_4 }
 
 money_test = _{ SOI ~ money ~ EOF }
+
+// ------- CMDS -------
+WORD = _{ ASCII_ALPHANUMERIC+ }
+keyword = _{ "from" | "to" | "split" | "for" }
+
+from_accn = { "from" ~ accn ~ ("," ~ accn)* }
+to_accn = { "to" ~ accn ~ ("," ~ accn)* }
+desc = { (!keyword ~ WORD)+ }
+
+accn_clause = _{ from_accn | to_accn }
+desc_clause = _{ "for" ~ desc }
+clause = _{ accn_clause | desc_clause }
+
+split = _{ SOI ~ "split" ~ money ~ clause* ~ EOF}

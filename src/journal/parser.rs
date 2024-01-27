@@ -17,7 +17,7 @@ use crate::{
 
 #[derive(Parser)]
 #[grammar = "./parser/coin.pest"]
-struct IdentParser;
+pub(crate) struct IdentParser;
 
 fn parse_err(msg: &str, span: Span) -> pest::error::Error<Rule> {
     use pest::error::{Error, ErrorVariant};

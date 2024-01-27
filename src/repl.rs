@@ -1,8 +1,6 @@
 mod split;
 mod util;
 
-use std::str::FromStr;
-
 use anyhow::{Context, Result};
 use chrono::{Local, NaiveDate};
 use clap::Parser;
@@ -78,8 +76,8 @@ pub(crate) fn repl() {
             };
             rl.add_history_entry(cmd.as_str())?;
 
-            let cmd =
-                Cmd::try_parse_from(std::iter::once("").chain(cmd.as_str().split_whitespace()))?;
+            let input = cmd.as_str();
+            let cmd = Cmd::try_parse_from(std::iter::once("").chain(input.split_whitespace()))?;
 
             match cmd {
                 Cmd::Quit => return,
@@ -96,8 +94,8 @@ pub(crate) fn repl() {
                     journal.save_to_file(&st.file)?;
                     st.new_txns.clear();
                 }
-                Cmd::Split { args } => {
-                    let txn = split::split(&mut journal, args.as_slice(), &st)?;
+                Cmd::Split { args: _ } => {
+                    let txn = split::split(&mut journal, input, &st)?;
                     println!("{}", &txn);
                     st.new_txns.push(txn.into());
                 }

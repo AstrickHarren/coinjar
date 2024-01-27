@@ -1,32 +1,18 @@
 use anyhow::{anyhow, bail};
+
+use pest::Parser;
 use split::util::find_or_create_accn;
 
-use crate::{accn::Accn, journal::entry::TxnEntry, valuable::Money};
+use crate::{
+    accn::Accn,
+    journal::{
+        entry::TxnEntry,
+        parser::{IdentParser, Rule},
+    },
+    valuable::Money,
+};
 
 use super::*;
-
-enum SplitSt {
-    Money,
-    Accn,
-    Desc,
-    Payee,
-}
-impl SplitSt {
-    fn keywords() -> &'static [&'static str] {
-        &["on", "for", "by"]
-    }
-}
-impl FromStr for SplitSt {
-    type Err = String;
-    fn from_str(s: &str) -> std::prelude::v1::Result<Self, Self::Err> {
-        match s {
-            "on" => Ok(SplitSt::Accn),
-            "for" => Ok(SplitSt::Desc),
-            "by" => Ok(SplitSt::Payee),
-            _ => unreachable!(),
-        }
-    }
-}
 
 #[derive(Debug, Default)]
 struct SplitBuilder {
@@ -73,40 +59,59 @@ impl SplitBuilder {
         }
         txn.build()
     }
+
+    fn from_str(journal: &mut Journal, input: &str) -> Result<Self> {
+        let mut pairs = IdentParser::parse(Rule::split, input)?;
+        let mut builder = Self::default();
+
+        let money = journal.parse_money(pairs.next().unwrap().as_str())?;
+        builder.with_money(money);
+
+        for pair in pairs {
+            match pair.as_rule() {
+                Rule::from_accn => {
+                    let accn = pair
+                        .into_inner()
+                        .exactly_one()
+                        .map_err(|e| anyhow!("{}", e))?;
+                    builder.with_recv(find_or_create_accn(journal, accn.as_str())?);
+                }
+                Rule::to_accn => {
+                    for pair in pair.into_inner() {
+                        builder.with_payee(find_or_create_accn(journal, pair.as_str())?);
+                    }
+                }
+                Rule::desc => {
+                    builder.with_desc(pair.as_str());
+                }
+                _ => unreachable!("unexpected rule: {:?}", pair.as_rule()),
+            }
+        }
+
+        Ok(builder)
+    }
 }
 
 /// Split a transaction, args must have the format:
 /// `<money> (on <accn>) (for <desc>) (by <payee> <payee> ...)`
 pub(super) fn split<'a>(
     journal: &'a mut Journal,
-    args: &[String],
+    args: &str,
     state: &ReplState,
 ) -> Result<TxnEntry<'a>> {
-    let mut st = SplitSt::Money;
-    let mut builder = SplitBuilder::default();
+    SplitBuilder::from_str(journal, args)?.build(journal, state.date)
+}
 
-    for arg in args {
-        if SplitSt::keywords().contains(&arg.as_str()) {
-            st = arg.parse().unwrap();
-            continue;
-        }
+#[cfg(test)]
+mod test {
+    use pest::Parser;
 
-        match st {
-            SplitSt::Money => {
-                let money = journal.parse_money(arg)?;
-                builder.with_money(money);
-            }
-            SplitSt::Accn => {
-                builder.with_recv(find_or_create_accn(journal, arg)?);
-            }
-            SplitSt::Desc => {
-                builder.with_desc(arg);
-            }
-            SplitSt::Payee => {
-                builder.with_payee(find_or_create_accn(journal, arg)?);
-            }
-        }
+    use crate::journal::parser::{IdentParser, Rule};
+
+    #[test]
+    fn test_parse_split() {
+        let cmd = "split 100 usd from food to groceries    , snacks ";
+        let pairs = IdentParser::parse(Rule::split, cmd).unwrap_or_else(|e| panic!("{}", e));
+        dbg!(pairs);
     }
-
-    builder.build(journal, state.date)
 }
