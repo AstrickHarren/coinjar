@@ -18,7 +18,7 @@ impl Accn {
         Self { id: Uuid::new_v4() }
     }
 
-    fn into_accn_mut(self, tree: &mut AccnTree) -> AccnEntryMut {
+    pub(crate) fn into_accn_mut(self, tree: &mut AccnTree) -> AccnEntryMut {
         tree.accn_mut(self)
     }
 
@@ -112,7 +112,7 @@ impl AccnTree {
     /// `asset:extra:common:food`
     pub(crate) fn by_name_fuzzy<'a>(
         &'a self,
-        name: impl AsAccnPath<'a> + 'a,
+        name: impl AccnPath<'a>,
     ) -> impl Iterator<Item = AccnEntry<'_>> + '_ {
         fn fuzzy_match(matcher: &str, matchee: &str) -> bool {
             matcher
@@ -120,7 +120,7 @@ impl AccnTree {
                 .contains(matchee.to_lowercase().as_str())
         }
 
-        let parts = name.as_accn_path().collect_vec();
+        let parts = name.accn_path().collect_vec();
         let fuzzy = self
             .root()
             .traverse(
@@ -146,23 +146,23 @@ impl AccnTree {
 
 impl Display for AccnTree {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.root().fmt_proper_descendent(Box::new(f))
+        self.root().fmt_proper_descendent(f)
     }
 }
 
-pub(crate) trait AsAccnPath<'a> {
-    fn as_accn_path(self) -> impl Iterator<Item = &'a str>;
+pub(crate) trait AccnPath<'a> {
+    fn accn_path(self) -> impl Iterator<Item = &'a str>;
 }
 
-impl<'a> AsAccnPath<'a> for &'a str {
-    fn as_accn_path(self) -> impl Iterator<Item = &'a str> {
+impl<'a> AccnPath<'a> for &'a str {
+    fn accn_path(self) -> impl Iterator<Item = &'a str> {
         self.split(':')
     }
 }
 
-impl<'a> AsAccnPath<'a> for Vec<&'a str> {
-    fn as_accn_path(self) -> impl Iterator<Item = &'a str> {
-        self.into_iter()
+impl<'a> AccnPath<'a> for &Vec<&'a str> {
+    fn accn_path(self) -> impl Iterator<Item = &'a str> {
+        self.iter().copied()
     }
 }
 

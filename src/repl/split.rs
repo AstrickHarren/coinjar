@@ -1,10 +1,7 @@
 use anyhow::{anyhow, bail};
+use split::util::find_or_create_accn;
 
-use crate::{
-    accn::{Accn, AccnEntry},
-    journal::entry::TxnEntry,
-    valuable::Money,
-};
+use crate::{accn::Accn, journal::entry::TxnEntry, valuable::Money};
 
 use super::*;
 
@@ -100,29 +97,15 @@ pub(super) fn split<'a>(
                 builder.with_money(money);
             }
             SplitSt::Accn => {
-                builder.with_recv(find_accn(journal, arg)?);
+                builder.with_recv(find_or_create_accn(journal, arg)?);
             }
             SplitSt::Desc => {
                 builder.with_desc(arg);
             }
             SplitSt::Payee => {
-                builder.with_payee(find_accn(journal, arg)?);
+                builder.with_payee(find_or_create_accn(journal, arg)?);
             }
         }
-    }
-
-    fn find_accn<'a>(journal: &'a Journal, matcher: &'a str) -> Result<AccnEntry<'a>> {
-        journal
-            .accns()
-            .by_name_fuzzy(matcher)
-            .exactly_one()
-            .map_err(|e| {
-                anyhow!(
-                    "accn matched by {} not unique or not found, candidates:\n {}",
-                    matcher,
-                    e.map(|a| a.abs_name()).join("\n")
-                )
-            })
     }
 
     builder.build(journal, state.date)

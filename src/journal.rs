@@ -242,6 +242,10 @@ impl Journal {
     pub(crate) fn accns(&self) -> &AccnTree {
         &self.accns
     }
+
+    pub(crate) fn accns_mut(&mut self) -> &mut AccnTree {
+        &mut self.accns
+    }
 }
 
 impl Display for Journal {

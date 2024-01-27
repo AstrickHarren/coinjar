@@ -34,13 +34,13 @@ enum DepthChange {
 }
 
 impl<'a> AccnEntry<'a> {
-    pub(super) fn fmt_proper_descendent(self, f: Box<&mut dyn Write>) -> std::fmt::Result {
+    pub(super) fn fmt_proper_descendent(self, f: &mut dyn Write) -> std::fmt::Result {
         for child in self.children() {
-            let f = &mut indented(*f);
+            let f = &mut indented(f);
             // NOTE: cannot change the indenting from space directly to branches here because of a limitation of crate indenter
             // also skips the root node
             writeln!(f, "└──{}", child.name())?;
-            child.fmt_proper_descendent(Box::new(f))?;
+            child.fmt_proper_descendent(f)?;
         }
 
         Ok(())
@@ -146,6 +146,13 @@ impl Display for AccnEntryMut<'_> {
 
 impl<'a> AccnEntryMut<'a> {
     pub(crate) fn as_ref(&'a self) -> AccnEntry<'a> {
+        AccnEntry {
+            accn: self.accn,
+            tree: self.tree,
+        }
+    }
+
+    pub(crate) fn into_ref(self) -> AccnEntry<'a> {
         AccnEntry {
             accn: self.accn,
             tree: self.tree,

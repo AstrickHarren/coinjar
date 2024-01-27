@@ -10,6 +10,7 @@ mod valuable;
 mod repl;
 #[cfg(test)]
 mod tests;
+mod util;
 
 fn main() {
     repl::repl();
