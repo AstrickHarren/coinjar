@@ -1,3 +1,4 @@
+mod date;
 mod split;
 mod util;
 
@@ -9,6 +10,8 @@ use itertools::Itertools;
 use rustyline::error::ReadlineError;
 
 use crate::journal::{register::QueryType, Journal, Txn};
+
+use self::date::DateArg;
 
 struct ReplState {
     date: NaiveDate,
@@ -32,14 +35,15 @@ enum Cmd {
     Register {
         matcher: Option<String>,
     },
-    Date {
-        date: NaiveDate,
-    },
     Inspect,
     Accns,
 
     #[clap(trailing_var_arg = true)]
     Split,
+    #[clap(allow_hyphen_values = true)]
+    Date {
+        arg: Option<DateArg>,
+    },
 }
 
 pub(crate) fn repl() {
@@ -81,9 +85,11 @@ pub(crate) fn repl() {
             match cmd {
                 Cmd::Quit => return,
                 Cmd::Register { matcher } => reg(&journal, matcher),
-                Cmd::Date { date } => {
-                    st.date = date;
-                    println!("date: {}", date);
+                Cmd::Date { arg } => {
+                    if let Some(arg) = arg {
+                        arg.apply(&mut st.date);
+                    }
+                    println!("{}", st.date);
                 }
 
                 Cmd::Inspect => {
