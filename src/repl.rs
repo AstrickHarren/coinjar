@@ -36,6 +36,7 @@ enum Cmd {
         date: NaiveDate,
     },
     Inspect,
+    Accns,
 
     #[clap(trailing_var_arg = true)]
     Split {
@@ -86,8 +87,12 @@ pub(crate) fn repl() {
                     st.date = date;
                     println!("date: {}", date);
                 }
+
                 Cmd::Inspect => {
                     inspect(&st);
+                }
+                Cmd::Accns => {
+                    println!("{}", journal.accns());
                 }
 
                 Cmd::Save => {

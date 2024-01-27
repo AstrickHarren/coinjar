@@ -57,7 +57,8 @@ fn fuzzy_create_accn<'a>(journal: &'a mut Journal, matcher: &'a str) -> Result<A
     while let Some(part) = matcher.pop() {
         let _: Option<_> = try {
             unmatched.push(part);
-            let formatter = |accn: &AccnEntry| accn.name().to_string() + ":" + &unmatched.join(":");
+            let formatter =
+                |accn: &AccnEntry| accn.abs_name().to_string() + ":" + &unmatched.join(":");
             let candidates = journal
                 .accns()
                 .by_name_fuzzy(&matcher)
