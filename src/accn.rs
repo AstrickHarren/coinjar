@@ -33,14 +33,6 @@ struct AccnData {
     parent: Option<Accn>,
 }
 
-enum AccnType {
-    Asset,
-    Liability,
-    Equity,
-    Income,
-    Expense,
-}
-
 #[derive(Debug)]
 pub(crate) struct AccnTree {
     root: Accn,
@@ -58,7 +50,15 @@ impl AccnTree {
                 parent: None,
             },
         );
-        Self { root, accns }
+        let mut ret = Self { root, accns };
+
+        ret.open_accn(root, "asset");
+        ret.open_accn(root, "liability");
+        ret.open_accn(root, "equity");
+        ret.open_accn(root, "income");
+        ret.open_accn(root, "expense");
+
+        ret
     }
 
     pub(crate) fn root(&self) -> AccnEntry {
