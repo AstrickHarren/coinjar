@@ -39,7 +39,9 @@ enum Cmd {
     Accns,
 
     #[clap(trailing_var_arg = true)]
-    Split,
+    Split {
+        args: Vec<String>,
+    },
     #[clap(allow_hyphen_values = true)]
     Date {
         arg: Option<DateArg>,
@@ -68,13 +70,25 @@ pub(crate) fn repl() {
     };
 
     let mut rl = rustyline::DefaultEditor::new().unwrap();
+    let history_path = "/tmp/coinjar.history";
+    rl.load_history(history_path).ok();
     loop {
         let ret: Result<()> = try {
             // let cmd: String = Input::new().interact_text()?;
             let cmd = rl.readline("coinjar> ");
             let cmd = match cmd {
                 Err(ReadlineError::Interrupted) => continue,
-                Err(ReadlineError::Eof) => return,
+                Err(ReadlineError::Eof) => {
+                    rl.save_history(history_path).unwrap_or_else(|e| {
+                        eprintln!(
+                            "{}: failed to save history: {}",
+                            "warning".yellow().bold(),
+                            e
+                        );
+                        std::process::exit(1);
+                    });
+                    return;
+                }
                 cmd => cmd?,
             };
             rl.add_history_entry(cmd.as_str())?;
@@ -103,7 +117,7 @@ pub(crate) fn repl() {
                     journal.save_to_file(&st.file)?;
                     st.new_txns.clear();
                 }
-                Cmd::Split => {
+                Cmd::Split { .. } => {
                     let txn = split::split(&mut journal, input, &st)?;
                     println!("{}", &txn);
                     st.new_txns.push(txn.into());
