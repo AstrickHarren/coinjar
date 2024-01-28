@@ -341,6 +341,16 @@ impl<'a> Sum<MoneyEntry<'a>> for ValuableEntry<'a> {
     }
 }
 
+impl<'a> Neg for ValuableEntry<'a> {
+    type Output = Self;
+    fn neg(mut self) -> Self::Output {
+        for money in self.valuable.values_mut() {
+            money.money = -money.money;
+        }
+        self
+    }
+}
+
 impl Display for ValuableEntry<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.valuable.is_empty() {

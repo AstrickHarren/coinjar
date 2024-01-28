@@ -141,12 +141,17 @@ fn interact(input: &str, journal: &mut Journal, state: &mut ReplState) -> Result
             journal.save_to_file(&state.file)?;
         }
         Rule::del => {
-            let txns: Vec<_> = state.new_txns.iter().map(|t| journal.txn(*t)).collect();
+            let txns: Vec<_> = state
+                .new_txns
+                .iter()
+                .map(|t| journal.txn(*t).brief())
+                .collect();
             if txns.is_empty() {
                 bail!("no transaction left to delete")
             }
             let prompt = format!("{}", "select to delete".red());
             let txn = Select::new(&prompt, txns).prompt()?.id();
+
             state.new_txns.retain(|t| *t != txn);
             txn.into_mut(journal).remove();
         }

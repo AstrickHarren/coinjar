@@ -69,6 +69,14 @@ impl AccnTree {
         self.accn_mut(self.root)
     }
 
+    pub(crate) fn expense(&self) -> AccnEntry {
+        self.root().child("expense").unwrap()
+    }
+
+    pub(crate) fn income(&self) -> AccnEntry {
+        self.root().child("income").unwrap()
+    }
+
     fn open_accn(&mut self, parent: Accn, name: &str) -> Accn {
         let accn = Accn::new();
         self.accns.insert(

@@ -57,6 +57,10 @@ impl<'a> AccnEntry<'a> {
         std::iter::successors(Some(self), move |accn| accn.parent())
     }
 
+    pub(crate) fn is_descendent_of(self, other: AccnEntry<'a>) -> bool {
+        self.ancestors().any(|accn| accn == other)
+    }
+
     pub(super) fn descendants_pre_order(self) -> Box<dyn Iterator<Item = AccnEntry<'a>> + 'a> {
         Box::new(
             std::iter::once(self).chain(
@@ -103,7 +107,7 @@ impl<'a> AccnEntry<'a> {
         &self.tree.accns[&self.accn]
     }
 
-    fn child(self, name: &str) -> Option<AccnEntry<'a>> {
+    pub(super) fn child(self, name: &str) -> Option<AccnEntry<'a>> {
         self.children().find(move |child| child.name() == name)
     }
 

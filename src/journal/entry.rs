@@ -1,8 +1,14 @@
-use std::fmt::{Debug, Display};
+use std::{
+    fmt::{Debug, Display},
+    ops::Deref,
+};
 
 use itertools::Itertools;
 
-use crate::{accn::AccnEntry, valuable::MoneyEntry};
+use crate::{
+    accn::AccnEntry,
+    valuable::{MoneyEntry, ValuableEntry},
+};
 
 use super::*;
 
@@ -92,6 +98,17 @@ impl<'a> TxnEntry<'a> {
     pub(crate) fn id(&self) -> Txn {
         self.txn
     }
+
+    pub(crate) fn brief(self) -> TxnEntryBrief<'a> {
+        TxnEntryBrief { entry: self }
+    }
+
+    fn income_statement(&self) -> impl Iterator<Item = PostingEntry<'_>> {
+        let inc = self.journal.accns().income();
+        let exp = self.journal.accns().expense();
+        self.postings()
+            .filter(move |p| p.accn().is_descendent_of(inc) || p.accn().is_descendent_of(exp))
+    }
 }
 
 impl From<TxnEntry<'_>> for Txn {
@@ -109,6 +126,31 @@ impl Display for TxnEntry<'_> {
             self.data().description,
             self.postings().join("\n")
         )
+    }
+}
+
+pub(crate) struct TxnEntryBrief<'a> {
+    entry: TxnEntry<'a>,
+}
+
+impl Display for TxnEntryBrief<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let txn = &self.entry;
+        let valuable: ValuableEntry = self.entry.income_statement().map(|p| p.money()).sum();
+        write!(
+            f,
+            "{} {:<50} {:>20}",
+            txn.data().date,
+            txn.data().description,
+            -valuable
+        )
+    }
+}
+
+impl<'a> Deref for TxnEntryBrief<'a> {
+    type Target = TxnEntry<'a>;
+    fn deref(&self) -> &Self::Target {
+        &self.entry
     }
 }
 
