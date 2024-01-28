@@ -27,8 +27,21 @@ struct ReplState {
     date: NaiveDate,
     file: String,
     new_txns: Vec<Txn>,
+    del_txns: usize,
 
     history_writes: Vec<Vec<Txn>>,
+}
+
+impl ReplState {
+    fn inspect(&self) {
+        println!("date: {}", self.date);
+        println!("file: {}", self.file);
+        println!(
+            "changes not saved {}[+] {}[-]",
+            self.new_txns.len(),
+            self.del_txns
+        );
+    }
 }
 
 #[derive(Debug, clap::Parser)]
@@ -47,6 +60,7 @@ pub(crate) fn repl() {
         date: Local::now().date_naive(),
         file: args.file.clone(),
         new_txns: Vec::new(),
+        del_txns: 0,
         history_writes: Vec::new(),
     };
 
@@ -125,6 +139,7 @@ fn interact(input: &str, journal: &mut Journal, state: &mut ReplState) -> Result
             if state.new_txns.is_empty() {
                 return Ok(());
             }
+            state.del_txns = 0;
             state
                 .history_writes
                 .push(std::mem::take(&mut state.new_txns));
@@ -141,20 +156,18 @@ fn interact(input: &str, journal: &mut Journal, state: &mut ReplState) -> Result
             journal.save_to_file(&state.file)?;
         }
         Rule::del => {
-            let txns: Vec<_> = state
-                .new_txns
-                .iter()
-                .map(|t| journal.txn(*t).brief())
-                .collect();
+            let txns: Vec<_> = journal.txns().map(|t| t.brief()).collect();
             if txns.is_empty() {
                 bail!("no transaction left to delete")
             }
             let prompt = format!("{}", "select to delete".red());
             let txn = Select::new(&prompt, txns).prompt()?.id();
 
+            state.del_txns += 1;
             state.new_txns.retain(|t| *t != txn);
             txn.into_mut(journal).remove();
         }
+        Rule::inspect => state.inspect(),
         _ => unreachable!("unexpected rule: {:?}", pair.as_rule()),
     };
 

@@ -57,5 +57,6 @@ del = { "del" }
 open = { "open" ~ accn }
 save = { "save" | "write" | "w" }
 undo = { "undo" }
+inspect = { "inspect" | "ins" }
 
-cmd = _{ SOI ~  (split | reg | date_cmd | open | accn_cmd | save | del | undo )  ~ EOF }
+cmd = _{ SOI ~  (split | reg | date_cmd | open | accn_cmd | save | del | undo | inspect )  ~ EOF }
