@@ -54,5 +54,6 @@ date_cmd = { "date" ~ (date | integer)? }
 accn_cmd = { "accns" }
 del = { "del" ~ nat }
 open = { "open" ~ accn }
+save = { "save" | "write" | "w" }
 
-cmd = _{ SOI ~  (split | reg | date_cmd | open | accn_cmd)  ~ EOF }
+cmd = _{ SOI ~  (split | reg | date_cmd | open | accn_cmd | save )  ~ EOF }

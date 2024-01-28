@@ -88,6 +88,7 @@ fn interact(input: &str, journal: &mut Journal, state: &mut ReplState) -> Result
             let pairs = pair.into_inner();
             let txn = split::split(journal, pairs, state)?;
             println!("{}", txn);
+            state.new_txns.push(txn.into());
         }
         Rule::reg => {
             let matcher = pair.into_inner().next();
@@ -113,6 +114,11 @@ fn interact(input: &str, journal: &mut Journal, state: &mut ReplState) -> Result
                 })?;
             let accn = fuzzy_create_accn(journal, matcher)?;
             println!("created accn: {}", accn.as_ref().abs_name());
+        }
+        Rule::save => {
+            journal.save_to_file(&state.file)?;
+            println!("saved {} txns to {}", state.new_txns.len(), state.file);
+            state.new_txns.clear();
         }
         _ => unreachable!("unexpected rule: {:?}", pair.as_rule()),
     };
