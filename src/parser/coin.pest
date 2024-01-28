@@ -35,14 +35,22 @@ money_test = _{ SOI ~ money ~ EOF }
 
 // ------- CMDS -------
 WORD = _{ ASCII_ALPHANUMERIC+ }
-keyword = _{ "from" | "to" | "split" | "for" }
+nat = @{ ASCII_DIGIT+ }
+integer = @{ "-"? ~ nat }
+keyword = _{ "from" | "to" | "split" | "for" | "by" }
 
-from_accn = { "from" ~ accn ~ ("," ~ accn)* }
+from_accn = { ("from" | "by" ) ~ accn ~ ("," ~ accn)* }
 to_accn = { "to" ~ accn ~ ("," ~ accn)* }
 desc = { (!keyword ~ WORD)+ }
 
 accn_clause = _{ from_accn | to_accn }
 desc_clause = _{ "for" ~ desc }
 clause = _{ accn_clause | desc_clause }
+matcher = { WORD }
 
-split = _{ SOI ~ "split" ~ money ~ clause* ~ EOF}
+split = { "split"? ~ !keyword ~ money ~ clause* }
+reg = { "reg" ~ matcher? }
+date_cmd = { "date" ~ (date | integer)? }
+del = { "del" ~ nat }
+
+cmd = _{ SOI ~  (split | reg | date_cmd)  ~ EOF }

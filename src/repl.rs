@@ -2,14 +2,20 @@ mod date;
 mod split;
 mod util;
 
+use std::fmt::Display;
+
 use anyhow::{Context, Result};
 use chrono::{Local, NaiveDate};
-use clap::Parser;
 use colored::Colorize;
 use itertools::Itertools;
-use rustyline::error::ReadlineError;
+use pest::Parser;
+use rustyline::{config::Configurer, error::ReadlineError};
 
-use crate::journal::{register::QueryType, Journal, Txn};
+use crate::journal::{
+    parser::{IdentParser, Rule},
+    register::QueryType,
+    Journal, Txn,
+};
 
 use self::date::DateArg;
 
@@ -19,110 +25,38 @@ struct ReplState {
     new_txns: Vec<Txn>,
 }
 
-#[derive(Debug, Parser)]
+#[derive(Debug, clap::Parser)]
 struct Args {
     file: String,
 }
 
-#[derive(Debug, Parser)]
-#[clap(name = "")]
-enum Cmd {
-    #[clap(alias = "q")]
-    Quit,
-    #[clap(alias = "s")]
-    Save,
-    #[clap(alias = "reg")]
-    Register {
-        matcher: Option<String>,
-    },
-    Inspect,
-    Accns,
-
-    #[clap(trailing_var_arg = true)]
-    Split {
-        args: Vec<String>,
-    },
-    #[clap(allow_hyphen_values = true)]
-    Date {
-        arg: Option<DateArg>,
-    },
-}
-
 pub(crate) fn repl() {
-    let args = Args::parse();
-    let mut journal = Journal::from_file(&args.file)
-        .with_context(|| {
-            format!(
-                "{} failed to open journal file {}",
-                "error".red().bold(),
-                args.file
-            )
-        })
-        .unwrap_or_else(|e| {
-            eprintln!("{:#}", e);
-            std::process::exit(1);
-        });
+    let history_path = "/tmp/coinjar.history";
 
-    let mut st = ReplState {
+    let (args, mut journal) = parse_args().unwrap_or_else(|e| exit_gracefully(e));
+    let mut rl = rustyline::DefaultEditor::new().unwrap_or_else(|e| exit_gracefully(e));
+    rl.load_history(history_path).ok();
+    rl.set_auto_add_history(true);
+    let mut state = ReplState {
         date: Local::now().date_naive(),
-        file: args.file,
+        file: args.file.clone(),
         new_txns: Vec::new(),
     };
 
-    let mut rl = rustyline::DefaultEditor::new().unwrap();
-    let history_path = "/tmp/coinjar.history";
-    rl.load_history(history_path).ok();
     loop {
         let ret: Result<()> = try {
-            // let cmd: String = Input::new().interact_text()?;
-            let cmd = rl.readline("coinjar> ");
-            let cmd = match cmd {
+            let input = rl.readline("coinjar> ");
+            let input = match input {
                 Err(ReadlineError::Interrupted) => continue,
                 Err(ReadlineError::Eof) => {
-                    rl.save_history(history_path).unwrap_or_else(|e| {
-                        eprintln!(
-                            "{}: failed to save history: {}",
-                            "warning".yellow().bold(),
-                            e
-                        );
-                        std::process::exit(1);
-                    });
+                    rl.save_history(history_path)
+                        .unwrap_or_else(|e| exit_gracefully(e));
                     return;
                 }
-                cmd => cmd?,
+                input => input?,
             };
-            rl.add_history_entry(cmd.as_str())?;
 
-            let input = cmd.as_str();
-            let cmd = Cmd::try_parse_from(std::iter::once("").chain(input.split_whitespace()))?;
-
-            match cmd {
-                Cmd::Quit => return,
-                Cmd::Register { matcher } => reg(&journal, matcher),
-                Cmd::Date { arg } => {
-                    if let Some(arg) = arg {
-                        arg.apply(&mut st.date);
-                    }
-                    println!("{}", st.date);
-                }
-
-                Cmd::Inspect => {
-                    inspect(&st);
-                }
-                Cmd::Accns => {
-                    println!("{}", journal.accns());
-                }
-
-                Cmd::Save => {
-                    journal.save_to_file(&st.file)?;
-                    st.new_txns.clear();
-                }
-                Cmd::Split { .. } => {
-                    let txn = split::split(&mut journal, input, &st)?;
-                    println!("{}", &txn);
-                    st.new_txns.push(txn.into());
-                }
-            }
+            interact(&input, &mut journal, &mut state)?;
         };
 
         ret.with_context(|| format!("{}", "error".red().bold()))
@@ -130,14 +64,50 @@ pub(crate) fn repl() {
     }
 }
 
-fn inspect(st: &ReplState) {
-    println!("date: {}", st.date);
-    println!("file: {}", st.file);
-    println!("txn: [+]{}", st.new_txns.len());
+fn interact(input: &str, journal: &mut Journal, state: &mut ReplState) -> Result<()> {
+    let pair = IdentParser::parse(Rule::cmd, input)
+        .with_context(|| "Failed to parse cmd".to_string())?
+        .next()
+        .unwrap();
+
+    match pair.as_rule() {
+        Rule::date_cmd => {
+            let date_arg = pair.into_inner().next();
+            if let Some(d) = date_arg
+                .map(|d| d.as_str().parse::<DateArg>())
+                .transpose()?
+            {
+                d.apply(&mut state.date)
+            }
+            println!("{}", state.date);
+        }
+        Rule::split => {
+            let pairs = pair.into_inner();
+            let txn = split::split(journal, pairs, state)?;
+            println!("{}", txn);
+        }
+        Rule::reg => {
+            let matcher = pair.into_inner().next();
+            let query = matcher
+                .map(|m| QueryType::MatchAccn(m.as_str().into()))
+                .unwrap_or_default();
+            println!("{}", journal.query(query).into_regs().join("\n"));
+        }
+        _ => unreachable!("unexpected rule: {:?}", pair.as_rule()),
+    };
+
+    Ok(())
 }
 
-fn reg(journal: &Journal, matcher: Option<String>) {
-    let query = matcher.map(QueryType::MatchAccn).unwrap_or_default();
-    let query = journal.query(query);
-    println!("{}", query.into_regs().format("\n"));
+fn parse_args() -> Result<(Args, Journal)> {
+    let args = <Args as clap::Parser>::parse();
+    let journal = Journal::from_file(&args.file)
+        .with_context(|| format!("Failed to open journal file: {}", args.file))?;
+
+    Ok((args, journal))
+}
+
+fn exit_gracefully(e: impl Display) -> ! {
+    eprintln!("{}: {:#}", "error".red().bold(), e);
+    std::process::exit(1)
 }

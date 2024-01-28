@@ -15,11 +15,11 @@ impl FromStr for DateArg {
         let rel = s
             .parse::<i32>()
             .ok()
-            .map(|n| DateArg::Rel(n))
+            .map(DateArg::Rel)
             .or_else(|| {
                 NaiveDate::parse_from_str(s, "%Y-%m-%d")
                     .or_else(|_| NaiveDate::parse_from_str(s, "%Y/%m/%d"))
-                    .map(|d| DateArg::Date(d))
+                    .map(DateArg::Date)
                     .ok()
             })
             .or_else(|| {
@@ -41,7 +41,7 @@ impl DateArg {
     pub(super) fn apply(&self, date: &mut NaiveDate) {
         match self {
             DateArg::Date(d) => *date = *d,
-            DateArg::Rel(n) => *date = *date + chrono::Duration::days(*n as i64),
+            DateArg::Rel(n) => *date += chrono::Duration::days(*n as i64),
         }
     }
 }

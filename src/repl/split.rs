@@ -1,7 +1,7 @@
 use anyhow::{anyhow, bail};
 
 use inquire::Text;
-use pest::Parser;
+use pest::{iterators::Pairs, Parser};
 use split::util::find_or_create_accn;
 
 use crate::{
@@ -66,7 +66,11 @@ impl SplitBuilder {
     }
 
     fn from_str(journal: &mut Journal, input: &str) -> Result<Self> {
-        let mut pairs = IdentParser::parse(Rule::split, input)?;
+        let pairs = IdentParser::parse(Rule::split, input)?;
+        Self::from_pairs(journal, pairs)
+    }
+
+    fn from_pairs(journal: &mut Journal, mut pairs: Pairs<Rule>) -> Result<Self> {
         let mut builder = Self::default();
 
         let money = journal.parse_money(pairs.next().unwrap().as_str())?;
@@ -97,14 +101,12 @@ impl SplitBuilder {
     }
 }
 
-/// Split a transaction, args must have the format:
-/// `<money> (on <accn>) (for <desc>) (by <payee> <payee> ...)`
 pub(super) fn split<'a>(
     journal: &'a mut Journal,
-    args: &str,
+    pairs: Pairs<'_, Rule>,
     state: &ReplState,
 ) -> Result<TxnEntry<'a>> {
-    SplitBuilder::from_str(journal, args)?.build(journal, state.date)
+    SplitBuilder::from_pairs(journal, pairs)?.build(journal, state.date)
 }
 
 #[cfg(test)]
