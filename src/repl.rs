@@ -9,8 +9,8 @@ use chrono::{Local, NaiveDate};
 use colored::Colorize;
 use inquire::Select;
 use itertools::Itertools;
-use pest::{state, Parser};
-use rustyline::{config::Configurer, error::ReadlineError, history};
+use pest::Parser;
+use rustyline::{config::Configurer, error::ReadlineError};
 
 use crate::{
     journal::{
@@ -145,7 +145,8 @@ fn interact(input: &str, journal: &mut Journal, state: &mut ReplState) -> Result
             if txns.is_empty() {
                 bail!("no transaction left to delete")
             }
-            let txn = Select::new("select to delete", txns).prompt()?.id();
+            let prompt = format!("{}", "select to delete".red());
+            let txn = Select::new(&prompt, txns).prompt()?.id();
             state.new_txns.retain(|t| *t != txn);
             txn.into_mut(journal).remove();
         }

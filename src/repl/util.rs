@@ -73,7 +73,11 @@ pub(crate) fn fuzzy_create_accn<'a>(
 
             // match found
             let candidate = Select::new(
-                &format!("{} not found, create one from candidates", original_matcher),
+                &format!(
+                    "{}: {} not found, create one from candidates",
+                    "info".yellow().bold(),
+                    original_matcher.red()
+                ),
                 candidates,
             )
             .prompt();
