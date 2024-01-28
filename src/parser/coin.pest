@@ -47,13 +47,15 @@ accn_clause = _{ from_accn | to_accn }
 desc_clause = _{ "for" ~ desc }
 clause = _{ accn_clause | desc_clause }
 matcher = { WORD }
+fuzzy_date = { ANY+ }
 
 split = { "split"? ~ !keyword ~ money ~ clause* }
 reg = { "reg" ~ matcher? }
-date_cmd = { "date" ~ (date | integer)? }
+date_cmd = { "date" ~ (fuzzy_date)? }
 accn_cmd = { "accns" }
 del = { "del" }
 open = { "open" ~ accn }
 save = { "save" | "write" | "w" }
+undo = { "undo" }
 
-cmd = _{ SOI ~  (split | reg | date_cmd | open | accn_cmd | save | del )  ~ EOF }
+cmd = _{ SOI ~  (split | reg | date_cmd | open | accn_cmd | save | del | undo )  ~ EOF }

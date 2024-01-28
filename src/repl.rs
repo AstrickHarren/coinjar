@@ -9,8 +9,8 @@ use chrono::{Local, NaiveDate};
 use colored::Colorize;
 use inquire::Select;
 use itertools::Itertools;
-use pest::Parser;
-use rustyline::{config::Configurer, error::ReadlineError};
+use pest::{state, Parser};
+use rustyline::{config::Configurer, error::ReadlineError, history};
 
 use crate::{
     journal::{
@@ -27,6 +27,8 @@ struct ReplState {
     date: NaiveDate,
     file: String,
     new_txns: Vec<Txn>,
+
+    history_writes: Vec<Vec<Txn>>,
 }
 
 #[derive(Debug, clap::Parser)]
@@ -45,6 +47,7 @@ pub(crate) fn repl() {
         date: Local::now().date_naive(),
         file: args.file.clone(),
         new_txns: Vec::new(),
+        history_writes: Vec::new(),
     };
 
     loop {
@@ -119,7 +122,23 @@ fn interact(input: &str, journal: &mut Journal, state: &mut ReplState) -> Result
         Rule::save => {
             journal.save_to_file(&state.file)?;
             println!("saved {} txns to {}", state.new_txns.len(), state.file);
-            state.new_txns.clear();
+            if state.new_txns.is_empty() {
+                return Ok(());
+            }
+            state
+                .history_writes
+                .push(std::mem::take(&mut state.new_txns));
+        }
+        Rule::undo => {
+            let history = state
+                .history_writes
+                .pop()
+                .ok_or_else(|| anyhow!("no history to undo"))?;
+            println!("undo {} txns", history.len());
+            for txn in history {
+                journal.txn_mut(txn).remove()
+            }
+            journal.save_to_file(&state.file)?;
         }
         Rule::del => {
             let txns: Vec<_> = state.new_txns.iter().map(|t| journal.txn(*t)).collect();
