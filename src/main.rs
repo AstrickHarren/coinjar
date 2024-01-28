@@ -2,6 +2,7 @@
 #![feature(try_blocks)]
 #![feature(impl_trait_in_assoc_type)]
 #![feature(trait_alias)]
+#![feature(associated_type_defaults)]
 
 mod accn;
 mod journal;

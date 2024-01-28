@@ -4,20 +4,24 @@ mod util;
 
 use std::fmt::Display;
 
-use anyhow::{Context, Result};
+use anyhow::{anyhow, Context, Result};
 use chrono::{Local, NaiveDate};
 use colored::Colorize;
 use itertools::Itertools;
 use pest::Parser;
 use rustyline::{config::Configurer, error::ReadlineError};
 
-use crate::journal::{
-    parser::{IdentParser, Rule},
-    register::QueryType,
-    Journal, Txn,
+use crate::{
+    journal::{
+        self,
+        parser::{IdentParser, Rule},
+        register::QueryType,
+        Journal, Txn,
+    },
+    util::{Flip, NotEmpty},
 };
 
-use self::date::DateArg;
+use self::{date::DateArg, util::fuzzy_create_accn};
 
 struct ReplState {
     date: NaiveDate,
@@ -92,6 +96,24 @@ fn interact(input: &str, journal: &mut Journal, state: &mut ReplState) -> Result
                 .map(|m| QueryType::MatchAccn(m.as_str().into()))
                 .unwrap_or_default();
             println!("{}", journal.query(query).into_regs().join("\n"));
+        }
+        Rule::accn_cmd => {
+            println!("{}", journal.accns());
+        }
+        Rule::open => {
+            let matcher = pair.into_inner().next().unwrap().as_str();
+            journal
+                .accns()
+                .by_name_fuzzy(matcher)
+                .empty()
+                .map_err(|e| {
+                    anyhow!(
+                        "accns already exist:\n{}",
+                        e.map(|accn| accn.abs_name()).join("\n")
+                    )
+                })?;
+            let accn = fuzzy_create_accn(journal, matcher)?;
+            println!("created accn: {}", accn.as_ref().abs_name());
         }
         _ => unreachable!("unexpected rule: {:?}", pair.as_rule()),
     };

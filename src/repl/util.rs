@@ -47,7 +47,10 @@ fn choose<T: Display>(accns: impl Iterator<Item = T>, prompt: &str) -> Result<T>
 /// 1. If food:groceries exists, return it
 /// 2. If food exists, create food:groceries and return it
 /// 3. If food does not exist, return err
-fn fuzzy_create_accn<'a>(journal: &'a mut Journal, matcher: &'a str) -> Result<AccnEntryMut<'a>> {
+pub(crate) fn fuzzy_create_accn<'a>(
+    journal: &'a mut Journal,
+    matcher: &'a str,
+) -> Result<AccnEntryMut<'a>> {
     let original_matcher = matcher;
     let mut matcher = matcher.split(':').collect_vec();
     let mut unmatched = Vec::new();

@@ -3,6 +3,13 @@ use std::{fmt::Display, iter::Peekable, ops::Deref};
 pub(crate) trait NotEmpty {
     type Ok;
     fn not_empty(self) -> Option<Self::Ok>;
+
+    fn empty(self) -> Result<(), Self::Ok>
+    where
+        Self: Sized,
+    {
+        self.not_empty().ok_or(()).flipped()
+    }
 }
 
 impl<T> NotEmpty for T
@@ -15,6 +22,21 @@ where
         let mut peekable = self.peekable();
         let ret = peekable.peek().is_some().then_some(peekable);
         ret
+    }
+}
+
+pub(crate) trait Flip {
+    type Flipped;
+    fn flipped(self) -> Self::Flipped;
+}
+
+impl<T, E> Flip for Result<T, E> {
+    type Flipped = Result<E, T>;
+    fn flipped(self) -> Self::Flipped {
+        match self {
+            Ok(t) => Err(t),
+            Err(e) => Ok(e),
+        }
     }
 }
 
