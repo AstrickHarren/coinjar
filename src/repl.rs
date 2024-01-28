@@ -4,9 +4,10 @@ mod util;
 
 use std::fmt::Display;
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{anyhow, bail, Context, Result};
 use chrono::{Local, NaiveDate};
 use colored::Colorize;
+use inquire::Select;
 use itertools::Itertools;
 use pest::Parser;
 use rustyline::{config::Configurer, error::ReadlineError};
@@ -119,6 +120,15 @@ fn interact(input: &str, journal: &mut Journal, state: &mut ReplState) -> Result
             journal.save_to_file(&state.file)?;
             println!("saved {} txns to {}", state.new_txns.len(), state.file);
             state.new_txns.clear();
+        }
+        Rule::del => {
+            let txns: Vec<_> = state.new_txns.iter().map(|t| journal.txn(*t)).collect();
+            if txns.is_empty() {
+                bail!("no transaction left to delete")
+            }
+            let txn = Select::new("select to delete", txns).prompt()?.id();
+            state.new_txns.retain(|t| *t != txn);
+            txn.into_mut(journal).remove();
         }
         _ => unreachable!("unexpected rule: {:?}", pair.as_rule()),
     };

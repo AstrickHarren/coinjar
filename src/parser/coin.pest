@@ -52,8 +52,8 @@ split = { "split"? ~ !keyword ~ money ~ clause* }
 reg = { "reg" ~ matcher? }
 date_cmd = { "date" ~ (date | integer)? }
 accn_cmd = { "accns" }
-del = { "del" ~ nat }
+del = { "del" }
 open = { "open" ~ accn }
 save = { "save" | "write" | "w" }
 
-cmd = _{ SOI ~  (split | reg | date_cmd | open | accn_cmd | save )  ~ EOF }
+cmd = _{ SOI ~  (split | reg | date_cmd | open | accn_cmd | save | del )  ~ EOF }

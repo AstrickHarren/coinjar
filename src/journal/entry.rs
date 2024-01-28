@@ -88,6 +88,10 @@ impl<'a> TxnEntry<'a> {
     pub(super) fn new(txn: Txn, journal: &'a Journal) -> Self {
         Self { txn, journal }
     }
+
+    pub(crate) fn id(&self) -> Txn {
+        self.txn
+    }
 }
 
 impl From<TxnEntry<'_>> for Txn {
@@ -105,5 +109,20 @@ impl Display for TxnEntry<'_> {
             self.data().description,
             self.postings().join("\n")
         )
+    }
+}
+
+pub(crate) struct TxnEntryMut<'a> {
+    txn: Txn,
+    journal: &'a mut Journal,
+}
+
+impl<'a> TxnEntryMut<'a> {
+    pub(super) fn new(txn: Txn, journal: &'a mut Journal) -> Self {
+        Self { txn, journal }
+    }
+
+    pub(crate) fn remove(self) {
+        self.journal.txns.remove(self.txn);
     }
 }

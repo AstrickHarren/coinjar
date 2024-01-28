@@ -17,7 +17,7 @@ use crate::{
     valuable::{CurrencyStore, Money, Valuable},
 };
 
-use self::entry::{PostingEntry, TxnEntry};
+use self::entry::{PostingEntry, TxnEntry, TxnEntryMut};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct Posting {
@@ -42,6 +42,12 @@ pub(crate) struct Txn {
     id: Uuid,
 }
 
+impl Txn {
+    pub(crate) fn into_mut(self, journal: &mut Journal) -> TxnEntryMut<'_> {
+        TxnEntryMut::new(self, journal)
+    }
+}
+
 #[derive(Debug)]
 struct TxnData {
     date: NaiveDate,
@@ -53,6 +59,16 @@ struct TxnData {
 pub(crate) struct TxnStore {
     txns: HashMap<Txn, TxnData>,
     postings: HashMap<Posting, PostingData>,
+}
+
+impl TxnStore {
+    pub(crate) fn remove(&mut self, txn: Txn) -> Option<()> {
+        let txn = self.txns.remove(&txn)?;
+        for posting in txn.postings {
+            self.postings.remove(&posting);
+        }
+        Some(())
+    }
 }
 
 pub(crate) struct TxnBuilder {
@@ -222,6 +238,10 @@ impl Journal {
 
     pub(crate) fn txn(&self, txn: Txn) -> TxnEntry<'_> {
         TxnEntry::new(txn, self)
+    }
+
+    pub(crate) fn txn_mut(&mut self, txn: Txn) -> TxnEntryMut<'_> {
+        TxnEntryMut::new(txn, self)
     }
 
     pub(crate) fn postings(&self) -> impl Iterator<Item = PostingEntry<'_>> {
