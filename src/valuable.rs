@@ -68,7 +68,8 @@ impl CurrencyStore {
     }
 
     fn get_by_code(&self, code: &str) -> Option<Currency> {
-        self.codes.get(code).copied()
+        // WARNING: Assuming all codes are uppercase.
+        self.codes.get(&code.to_uppercase()).copied()
     }
 
     fn get_by_symbol(&self, symbol: &str) -> Option<Currency> {
