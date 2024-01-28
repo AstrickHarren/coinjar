@@ -125,13 +125,16 @@ impl AccnTree {
             .root()
             .traverse(
                 vec![],
-                move |st, accn| {
+                move |st, accn| try {
                     st.push(accn.name());
-                    st.iter()
+                    (st.len() >= parts.len()).then_some(())?;
+                    let accn = st
+                        .iter()
                         .skip(st.len().saturating_sub(parts.len()))
                         .zip(parts.iter())
                         .all(|(st, pt)| fuzzy_match(st, pt))
-                        .then_some(accn)
+                        .then_some(accn)?;
+                    (accn != self.root()).then_some(accn)? // skip root
                 },
                 |st, _| {
                     st.pop();
@@ -168,6 +171,7 @@ impl<'a> AccnPath<'a> for &Vec<&'a str> {
 
 #[cfg(test)]
 mod test {
+
     use super::*;
 
     #[test]
@@ -185,5 +189,12 @@ mod test {
 
         let entry = tree.by_name_fuzzy("a:a").map(|e| e.name()).collect_vec();
         assert_eq!(entry, vec!["aa", "aab", "aaab", "bab", "baab"]);
+    }
+
+    #[test]
+    fn test_by_name_fuzzy_root() {
+        let tree = AccnTree::new();
+        let entry = tree.by_name_fuzzy("r:aasdf");
+        assert_eq!(entry.count(), 0);
     }
 }

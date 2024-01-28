@@ -13,12 +13,11 @@ use rustyline::{config::Configurer, error::ReadlineError};
 
 use crate::{
     journal::{
-        self,
         parser::{IdentParser, Rule},
         register::QueryType,
         Journal, Txn,
     },
-    util::{Flip, NotEmpty},
+    util::NotEmpty,
 };
 
 use self::{date::DateArg, util::fuzzy_create_accn};

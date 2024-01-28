@@ -4,7 +4,7 @@ use anyhow::bail;
 use inquire::Select;
 
 use crate::{
-    accn::{AccnEntry, AccnEntryMut},
+    accn::{Accn, AccnEntry, AccnEntryMut},
     util::{Formatted, NotEmpty},
 };
 
@@ -33,6 +33,7 @@ pub(crate) fn find_or_create_accn<'a>(
         )?,
     };
 
+    debug_assert_ne!(ret.id(), Accn::default()); // make sure it's not root
     Ok(ret)
 }
 
